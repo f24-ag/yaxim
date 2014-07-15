@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    android:orientation="vertical" >
+        
+    <TextView
+        android:id="@+id/error_view"
+        style="?ErrorView"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:focusable="true"
+        android:text=""
+        android:visibility="gone" />
+
+    <ExpandableListView
+        android:id="@+id/rosterList"
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
+        android:cacheColorHint="#0000"
+        android:divider="#0000"
+        android:fadingEdge="none"
+        android:focusable="true"
+        android:groupIndicator="@drawable/group_indicator"
+        android:scrollingCache="true" />
+    
+    <TextView
+        android:id="@+id/android:empty"
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
+        android:gravity="center"
+        android:text="@string/conn_empty_roster"
+        android:textSize="18sp" />
+
+</LinearLayout>

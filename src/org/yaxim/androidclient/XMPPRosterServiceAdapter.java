@@ -1,14 +1,17 @@
 package org.yaxim.androidclient;
 
+import java.util.Collection;
+
 import org.yaxim.androidclient.util.ConnectionState;
 
 import android.os.RemoteException;
 import android.util.Log;
+
 import org.yaxim.androidclient.IXMPPRosterCallback;
 import org.yaxim.androidclient.service.IXMPPRosterService;
 
-public class XMPPRosterServiceAdapter {
 	
+public class XMPPRosterServiceAdapter {
 	private static final String TAG = "yaxim.XMPPRSAdapter";
 	private IXMPPRosterService xmppServiceStub;
 	
@@ -135,6 +138,14 @@ public class XMPPRosterServiceAdapter {
 	public void sendPresenceRequest(String user, String type) {
 		try {
 			xmppServiceStub.sendPresenceRequest(user, type);
+		} catch (RemoteException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	public void openRoom(String parentRoomID, String topic, Collection<String> participantJids) {
+		try {
+			xmppServiceStub.openRoom(parentRoomID, topic, participantJids.toArray(new String[] {}));
 		} catch (RemoteException e) {
 			e.printStackTrace();
 		}

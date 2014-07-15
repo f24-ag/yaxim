@@ -159,7 +159,7 @@ public class XMPPService extends GenericService {
 					mSmackable.sendMessage(user, message);
 				else
 					SmackableImp.sendOfflineMessage(getContentResolver(),
-							user, message);
+							user, message, mConfig.jabberID);
 			}
 
 			public boolean isAuthenticated() throws RemoteException {
@@ -172,6 +172,22 @@ public class XMPPService extends GenericService {
 			
 			public void clearNotifications(String Jid) throws RemoteException {
 				clearNotification(Jid);
+			}
+
+			@Override
+			public void sendFile(String jid, String fileName)
+					throws RemoteException {
+				if (mSmackable != null) {
+					mSmackable.sendFile(jid, fileName);
+				}
+			}
+			
+			@Override
+			public void openRoom(String parentRoomID, String topic, String[] participants)
+					throws RemoteException {
+				if (mSmackable != null) {
+					mSmackable.openRoom(parentRoomID, topic, participants);
+				}
 			}
 		};
 	}
@@ -271,6 +287,11 @@ public class XMPPService extends GenericService {
 				mSmackable.sendPresenceRequest(jid, type);
 			}
 
+			@Override
+			public void openRoom(String parentRoomID, String topic,
+					String[] participants) throws RemoteException {
+				mSmackable.openRoom(parentRoomID, topic, participants);
+			}
 		};
 	}
 

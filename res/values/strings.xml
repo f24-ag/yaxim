@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-	<string name="app_name">yaxim</string>
+	<string name="app_name">F24 Rooms</string>
 
 	<!-- Connection state -->
-	<string name="conn_title">yaxim: %s</string>
+	<string name="conn_title">F24 Rooms: %s</string>
 	<string name="conn_connecting">Connecting to server…</string>
 	<string name="conn_disconnecting">Disconnecting…</string>
 	<string name="conn_online">Online</string>
@@ -16,13 +16,15 @@
 	<!-- Global Strings -->
 	<string name="Global_Exit">Exit</string>
 	<string name="Global_authenticate_first">Please connect first</string>
-	<string name="Global_JID_hint">user@yax.im</string>
+	<string name="Global_JID_hint">user@rooms.f24.com</string>
 	<!-- tooltip message when the user entered an invalid XMPP address -->
 	<string name="Global_JID_malformed">Check address format!</string>
-
+	<string name="Global_Copy">Copy</string>
+	<string name="Global_Generate">Generate</string>
+	
 	<!-- FirstStartUpDialog -->
-	<string name="StartupDialog_Title">Welcome to yaxim!</string>
-	<string name="StartupDialog_Summary">You need to configure yaxim before you can use it. Please enter your Jabber ID and password.</string>
+	<string name="StartupDialog_Title">Welcome to Rooms!</string>
+	<string name="StartupDialog_Summary">You need to configure Rooms before you can use it. Please enter your Jabber ID and password.</string>
 	<string name="StartupDialog_pwHint">Enter password</string>
 	<string name="StartupDialog_pwrHint">Repeat password</string>
 	<string name="StartupDialog_Username_title">Jabber ID:</string>
@@ -61,7 +63,7 @@
 	<string name="showOffline_title">Show offline contacts</string>
 	<string name="enableGroups_summ">Arrange your contacts by their groups</string>
 	<string name="enableGroups_title">Show contact groups</string>
-	<string name="foregroundService_summ">Keep yaxim in memory to ensure always-on connection (foreground service)</string>
+	<string name="foregroundService_summ">Keep Rooms in memory to ensure always-on connection (foreground service)</string>
 	<string name="foregroundService_title">Statusbar icon</string>
 
 	<string name="preftitle_debug">Debugging</string>
@@ -104,8 +106,13 @@
 	<string name="Menu_Status">Status</string>
 	<string name="Menu_connect">Connect</string>
 	<string name="Menu_disconnect">Disconnect</string>
-	<string name="Menu_about">About yaxim</string>
-
+	<string name="Menu_about">About Rooms</string>
+	<string name="Menu_sendFile">Send File</string>
+	<string name="Menu_encryptFile">Encrypt File</string>
+	<string name="Menu_decryptFile">Decrypt File</string>
+	<string name="Menu_startGroupChat">Start group chat</string>
+	<string name="Menu_addRoom">Open new room</string>
+			
 	<!-- AddFriend -->
 	<string name="addFriend_Title">Add a Contact</string>
 	<string name="addFriend_Summ">Please enter the Jabber ID of your friend, the
@@ -118,20 +125,21 @@
 	<string name="roster_contextmenu_title">Options for %s</string>
 	<string name="roster_contextmenu_group_rename">Rename group</string>
 	<string name="roster_contextmenu_contact_mark_all_as_read">Mark all messages as read</string>
+	<string name="roster_contextmenu_assign_key">Assign key</string>
 	<string name="roster_contextmenu_contact_delete">Delete Contact</string>
 	<string name="roster_contextmenu_contact_delmsg">Delete Chat History</string>
 	<string name="roster_contextmenu_contact_open_chat">Open Chat</string>
 	<string name="roster_contextmenu_contact_rename">Rename</string>
 	<string name="roster_contextmenu_contact_request_auth">Request Authorization</string>
 	<string name="roster_contextmenu_contact_change_group">Change Group</string>
-
+	
 	<!-- Accountprefs -->
 	<string name="account_settings_login">Login Information</string>
 	<string name="account_settings_title">Account Settings</string>
 	<string name="account_options_title">Connecting Options</string>
 	<string name="account_options_advanced">Advanced Options</string>
 	<string name="connstartup_title">Connect at Startup</string>
-	<string name="connstartup_summOn">Go online when yaxim is opened</string>
+	<string name="connstartup_summOn">Go online when Rooms is opened</string>
 	<string name="connstartup_summOff">Do not automatically connect</string>
 	<string name="carbons_title">Message Carbons (XEP-0280)</string>
 	<string name="carbons_summ">Request message copies from your other client(s)</string>
@@ -141,12 +149,19 @@
 	<string name="account_jabberPW_title">Account Password</string>
 	<string name="account_jabberPW_sum">Your Jabber account password</string>
 	<string name="account_jabberPW_dialog_title">Enter password:</string>
-
+	<string name="account_privateKey">Private key</string>
+	<string name="account_publicKey">Public key</string>
+	<string name="account_privateKeyGenerate">Generate new key pair</string>
+	<string name="account_privateKeyGenerateWarning">Really generate new encryption keys? Audrius is not happy!</string>
+	<string name="account_privateKeyGenerateSuccess">Keys generated successfully!</string>
+	<string name="account_publicKeyCopy">Copy public key</string>
+	<string name="account_publicKeyAssign">Assign public key</string>
+				
 	<!-- accountprefs -->
 	<string name="account_resource_title">Client Resource</string>
-	<string name="account_resource_summ">Default: yaxim</string>
+	<string name="account_resource_summ">Default: Rooms</string>
 	<string name="account_resource_dialog_title">Enter your resource:</string>
-	<string name="account_resource_hint">yaxim</string>
+	<string name="account_resource_hint">Rooms</string>
 	<string name="account_prio_title">Client Priority</string>
 	<string name="account_prio_summ">Default: 0 (allowed: -128 .. 127)</string>
 	<string name="account_prio_error">Allowed values: -128 .. 127</string>
@@ -196,9 +211,9 @@
 	-->
 
 	<!-- About Dialog -->
-	<string name="AboutDialog_title">About yaxim</string>
+	<string name="AboutDialog_title">About Rooms</string>
 	<string name="AboutDialog_DevelopersTitle">Developers</string>
-	<string name="AboutDialog_DevelopersText">Contact the developers at http://yaxim.org or on freenode IRC: #yaxim</string>
+	<string name="AboutDialog_DevelopersText">Contact the developers at http://Rooms.org or on freenode IRC: #Rooms</string>
 	<string name="AboutDialog_LicenceTitle">Licensing</string>
 	<string name="AboutDialog_Vote">Give Feedback</string>
 	<string name="AboutDialog_LicenceText">
@@ -277,4 +292,12 @@
 
 	<!-- SEND listener popup -->
 	<string name="chooseContact">Choose contact</string>
+	
+	<!-- Rooms -->
+	<string name="rooms.openRooms">Open rooms</string>
+	<string name="rooms.rooms">Rooms</string>
+	<string name="rooms.contacts">Contacts</string>
+	<string name="rooms.delete">Remove</string>
+	<string name="rooms.participants">Select participants</string>
+	<string name="rooms.title">Room topic</string>
 </resources>

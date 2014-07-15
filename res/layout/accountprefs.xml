@@ -41,6 +41,23 @@
 			android:singleLine="true"
 			android:numeric="integer|signed"
 		/>	
+		<org.yaxim.androidclient.preferences.PrivateKeyPreference
+			android:id="@+id/account_privateKey"
+			android:key="account_privateKey"
+			android:title="@string/account_privateKey"
+			android:dialogTitle="@string/account_privateKeyGenerate"
+			android:singleLine="true"
+    		android:positiveButtonText="@string/Global_Generate"		 
+		 />
+		<org.yaxim.androidclient.preferences.PublicKeyPreference
+			android:id="@+id/account_publicKey"
+			android:key="account_publicKey"
+			android:title="@string/account_publicKey"
+			android:dialogTitle="@string/account_publicKey"
+			android:singleLine="true"
+			android:negativeButtonText="@null"
+    		android:positiveButtonText="@string/Global_Copy"		 
+    	/>
 	</PreferenceCategory>
 	<PreferenceCategory android:title="@string/account_options_title">
 		<CheckBoxPreference

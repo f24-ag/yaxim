@@ -11,6 +11,10 @@
 		android:alphabeticShortcut="a"
 		android:icon="@android:drawable/ic_menu_add" />
 
+	<item android:id="@+id/menu_add_room" android:title="@string/Menu_addRoom"
+		android:alphabeticShortcut="r"
+		android:icon="@android:drawable/ic_menu_add" />
+	
 	<item android:id="@+id/menu_status" android:title="@string/Menu_Status"
 		android:alphabeticShortcut="s" android:icon="@android:drawable/ic_menu_myplaces"
 		android:showAsAction="never"/>
@@ -21,9 +25,9 @@
 
 	<item android:id="@+id/menu_about" android:title="@string/Menu_about"
 		android:alphabeticShortcut="y"
-		android:icon="@drawable/about" />
-
-	<item android:id="@+id/menu_exit" android:title="@string/Global_Exit"
+		android:icon="@drawable/about" /><item android:id="@+id/menu_exit" android:title="@string/Global_Exit"
 		android:alphabeticShortcut="x"
 		android:icon="@android:drawable/ic_menu_close_clear_cancel" />
+	
+	
 </menu>

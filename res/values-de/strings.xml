@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-	<string name="app_name">yaxim</string>
+	<string name="app_name">F24 Rooms</string>
 
 	<!-- Connection state -->
-	<string name="conn_title">yaxim: %s</string>
+	<string name="conn_title">Rooms: %s</string>
 	<string name="conn_connecting">Verbinde mit Server…</string>
 	<string name="conn_disconnecting">Trenne…</string>
 	<string name="conn_online">Online</string>
@@ -19,10 +19,12 @@
 	<string name="Global_JID_hint">nutzer@yax.im</string>
 	<!-- tooltip message when the user entered an invalid XMPP address -->
 	<string name="Global_JID_malformed">Adressformat überprüfen!</string>
-
+	<string name="Global_Copy">Kopieren</string>
+	<string name="Global_Generate">Generieren</string>
+		
 	<!-- FirstStartUpDialog -->
-	<string name="StartupDialog_Title">Willkommen zu yaxim!</string>
-	<string name="StartupDialog_Summary">Sie müssen yaxim zuerst konfigurieren. Bitte geben Sie Ihre Jabber-ID und Ihr Passwort ein.</string>
+	<string name="StartupDialog_Title">Willkommen zu Rooms!</string>
+	<string name="StartupDialog_Summary">Sie müssen Rooms zuerst konfigurieren. Bitte geben Sie Ihre Jabber-ID und Ihr Passwort ein.</string>
 	<string name="StartupDialog_pwHint">Passwort eingeben</string>
 	<string name="StartupDialog_Username_title">Jabber-ID:</string>
 	<string name="StartupDialog_passwd_title">Passwort:</string>
@@ -57,7 +59,7 @@
 	<string name="statuspopup_name">Status setzen</string>
 	<string name="showOffline_summ">Alle Kontakte immer in der Liste anzeigen</string>
 	<string name="showOffline_title">Offline-Kontakte anzeigen</string>
-	<string name="foregroundService_summ">Yaxim im Speicher halten um immer verbunden zu bleiben (Vordergrund-Dienst)</string>
+	<string name="foregroundService_summ">Rooms im Speicher halten um immer verbunden zu bleiben (Vordergrund-Dienst)</string>
 	<string name="foregroundService_title">Symbol in der Statusleiste</string>
 
 	<string name="preftitle_debug">Debugging</string>
@@ -99,8 +101,13 @@
 	<string name="Menu_Status">Status</string>
 	<string name="Menu_connect">Verbinden</string>
 	<string name="Menu_disconnect">Trennen</string>
-	<string name="Menu_about">Über yaxim</string>
-
+	<string name="Menu_about">Über Rooms</string>
+	<string name="Menu_sendFile">Datei anhängen</string>
+	<string name="Menu_encryptFile">Datei verschlüsseln</string>
+	<string name="Menu_decryptFile">Datei entschlüsseln</string>
+	<string name="Menu_startGroupChat">Gruppenchat starten</string>
+	<string name="Menu_addRoom">Neuen Raum aufmachen</string>
+				
 	<!-- AddFriend -->
 	<string name="addFriend_Title">Neuer Kontakt</string>
 	<string name="addFriend_Summ">Bitte geben Sie die Jabber-ID und den Anzeigenamen für Ihren Kontakt ein und ordnen Sie diesen in eine Kontakgruppe!</string>
@@ -117,14 +124,16 @@
 	<string name="roster_contextmenu_contact_rename">Umbenennen</string>
 	<string name="roster_contextmenu_contact_request_auth">Autorisierung anfordern</string>
 	<string name="roster_contextmenu_contact_change_group">Gruppe wechseln</string>
-
+	<string name="roster_contextmenu_contact_mark_all_as_read">Alle Nachrichten als gelesen markieren</string>
+	<string name="roster_contextmenu_assign_key">Schlüssel zuordnen</string>
+	
 	<!-- Accountprefs -->
 	<string name="account_settings_login">Login-Informationen</string>
 	<string name="account_settings_title">Konto-Einstellungen</string>
 	<string name="account_options_title">Verbindungseinstellungen</string>
 	<string name="account_options_advanced">Erweiterte Einstellungen</string>
 	<string name="connstartup_title">Automatisch verbinden</string>
-	<string name="connstartup_summOn">Beim Start von yaxim verbinden</string>
+	<string name="connstartup_summOn">Beim Start von Rooms verbinden</string>
 	<string name="connstartup_summOff">Nicht automatisch verbinden</string>
 	<string name="carbons_title">Nachrichtenkopien (XEP-0280)</string>
 	<string name="carbons_summ">Gesprächsverlauf über mehrere Chat-Anwendungen abgleichen</string>
@@ -134,12 +143,19 @@
 	<string name="account_jabberPW_title">Zugangspasswort</string>
 	<string name="account_jabberPW_sum">Ihr Jabber-Account-Passwort</string>
 	<string name="account_jabberPW_dialog_title">Passwort eingeben:</string>
-
+	<string name="account_privateKey">Privater Schlüssel</string>
+	<string name="account_publicKey">Öffentlicher Schlüssel</string>
+	<string name="account_privateKeyGenerate">Generiere neues Schlüsselpaar</string>
+	<string name="account_privateKeyGenerateWarning">Wirklich neues Schlüsselpaar erzeugen? Audrius wird traurig...</string>
+	<string name="account_privateKeyGenerateSuccess">Schlüsselpaar erfolgreich erzeugt!</string>
+	<string name="account_publicKeyCopy">Öffentlichen Schlüssel kopieren</string>
+	<string name="account_publicKeyAssign">Öffentlichen Schlüssel zuordnen</string>
+				
 	<!-- accountprefs -->
 	<string name="account_resource_title">Client-Ressource</string>
-	<string name="account_resource_summ">Standard: yaxim</string>
+	<string name="account_resource_summ">Standard: Rooms</string>
 	<string name="account_resource_dialog_title">Ressource eingeben:</string>
-	<string name="account_resource_hint">yaxim</string>
+	<string name="account_resource_hint">Rooms</string>
 	<string name="account_prio_title">Client-Priorität</string>
 	<string name="account_prio_summ">Standard: 0 (erlaubt: -128 .. 127)</string>
 	<string name="account_prio_error">Erlaubte Werte: -128 .. 127</string>
@@ -189,9 +205,9 @@
 	-->
 
 	<!-- About Dialog -->
-	<string name="AboutDialog_title">Über yaxim</string>
+	<string name="AboutDialog_title">Über Rooms</string>
 	<string name="AboutDialog_DevelopersTitle">Entwickler</string>
-	<string name="AboutDialog_DevelopersText">Kontakt mit den Entwicklern auf http://yaxim.org oder im freenode IRC: #yaxim</string>
+	<string name="AboutDialog_DevelopersText">Kontakt mit den Entwicklern auf http://Rooms.org oder im freenode IRC: #Rooms</string>
 	<string name="AboutDialog_LicenceTitle">Lizenzierung</string>
 	<string name="AboutDialog_Vote">Feedback geben</string>
 	<string name="AboutDialog_LicenceText">This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License version 2 as published by the Free Software Foundation. Link: http://www.gnu.org/licenses/gpl-2.0.html\n \n Parts of this software are provided under the MIT License:\n \n Copyright © 2009 Mads Kristiansen, Nullwire ApS\n \n Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions: \n The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software. \n THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.</string>
@@ -217,4 +233,12 @@
 
 	<!-- SEND listener popup -->
 	<string name="chooseContact">Kontakt auswählen</string>
+
+	<!-- Rooms -->
+	<string name="rooms.openRooms">Offene Räume</string>
+	<string name="rooms.rooms">Räume</string>
+	<string name="rooms.contacts">Kontaktliste</string>
+	<string name="rooms.delete">Raum entfernen</string>
+	<string name="rooms.participants">Teilnehmer auswählen</string>
+	<string name="rooms.title">Titel des Raumes</string>
 </resources>

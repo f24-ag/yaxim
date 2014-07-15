@@ -1,8 +1,11 @@
 package org.yaxim.androidclient.chat;
 
+import java.util.Collection;
+
+import org.yaxim.androidclient.service.IXMPPChatService;
+
 import android.os.RemoteException;
 import android.util.Log;
-import org.yaxim.androidclient.service.IXMPPChatService;
 
 public class XMPPChatServiceAdapter {
 
@@ -38,6 +41,22 @@ public class XMPPChatServiceAdapter {
 	public void clearNotifications(String Jid) {
 		try {
 			xmppServiceStub.clearNotifications(Jid);
+		} catch (RemoteException e) {
+			e.printStackTrace();
+		}
+	}
+
+	public void sendFile(String jabberID, String selectedFile) {
+		try {
+			xmppServiceStub.sendFile(jabberID, selectedFile);
+		} catch (RemoteException e) {
+			e.printStackTrace();
+		}
+	}
+
+	public void openRoom(String parentRoomID, String topic, Collection<String> participantJids) {
+		try {
+			xmppServiceStub.openRoom(parentRoomID, topic, participantJids.toArray(new String[] {}));
 		} catch (RemoteException e) {
 			e.printStackTrace();
 		}

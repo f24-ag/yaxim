@@ -1,25 +1,33 @@
 package org.yaxim.androidclient.chat;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 import org.yaxim.androidclient.MainWindow;
 import org.yaxim.androidclient.R;
 import org.yaxim.androidclient.YaximApplication;
+import org.yaxim.androidclient.crypto.Crypto;
 import org.yaxim.androidclient.data.ChatProvider;
 import org.yaxim.androidclient.data.ChatProvider.ChatConstants;
 import org.yaxim.androidclient.data.RosterProvider;
+import org.yaxim.androidclient.data.RosterProvider.ParticipantConstants;
+import org.yaxim.androidclient.data.YaximConfiguration;
 import org.yaxim.androidclient.service.IXMPPChatService;
 import org.yaxim.androidclient.service.XMPPService;
 import org.yaxim.androidclient.util.StatusMode;
 
-import com.actionbarsherlock.app.ActionBar;
-import com.actionbarsherlock.app.SherlockListActivity;
-import com.actionbarsherlock.view.Window;
-
+import android.app.AlertDialog;
 import android.content.ComponentName;
 import android.content.ContentValues;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.database.ContentObserver;
@@ -28,11 +36,13 @@ import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.TransitionDrawable;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.IBinder;
+import android.os.Environment;
 import android.os.Handler;
+import android.os.IBinder;
 import android.text.ClipboardManager;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.text.style.LineHeightSpan.WithDensity;
 import android.util.Log;
 import android.util.TypedValue;
 import android.view.ContextMenu;
@@ -40,8 +50,8 @@ import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.ViewGroup;
 import android.view.View.OnKeyListener;
+import android.view.ViewGroup;
 import android.widget.AdapterView.AdapterContextMenuInfo;
 import android.widget.Button;
 import android.widget.EditText;
@@ -50,6 +60,11 @@ import android.widget.ListAdapter;
 import android.widget.SimpleCursorAdapter;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import com.actionbarsherlock.app.ActionBar;
+import com.actionbarsherlock.app.SherlockListActivity;
+import com.actionbarsherlock.view.Menu;
+import com.actionbarsherlock.view.Window;
 
 @SuppressWarnings("deprecation") /* recent ClipboardManager only available since API 11 */
 public class ChatWindow extends SherlockListActivity implements OnKeyListener,
@@ -61,7 +76,7 @@ public class ChatWindow extends SherlockListActivity implements OnKeyListener,
 	private static final String TAG = "yaxim.ChatWindow";
 	private static final String[] PROJECTION_FROM = new String[] {
 			ChatProvider.ChatConstants._ID, ChatProvider.ChatConstants.DATE,
-			ChatProvider.ChatConstants.DIRECTION, ChatProvider.ChatConstants.JID,
+			ChatProvider.ChatConstants.DIRECTION, ChatProvider.ChatConstants.SENDER,
 			ChatProvider.ChatConstants.MESSAGE, ChatProvider.ChatConstants.DELIVERY_STATUS };
 
 	private static final int[] PROJECTION_TO = new int[] { R.id.chat_date,
@@ -81,10 +96,12 @@ public class ChatWindow extends SherlockListActivity implements OnKeyListener,
 	private ServiceConnection mServiceConnection;
 	private XMPPChatServiceAdapter mServiceAdapter;
 	private int mChatFontSize;
+	private YaximConfiguration mConfig;
 
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
-		setTheme(YaximApplication.getConfig(this).getTheme());
+		mConfig = YaximApplication.getConfig(this);
+		setTheme(mConfig.getTheme());
 		super.onCreate(savedInstanceState);
 	
 		mChatFontSize = Integer.valueOf(YaximApplication.getConfig(this).chatFontSize);
@@ -161,7 +178,13 @@ public class ChatWindow extends SherlockListActivity implements OnKeyListener,
 		if (hasWindowFocus()) unbindXMPPService();
 		getContentResolver().unregisterContentObserver(mContactObserver);
 	}
-
+	
+	@Override
+	public boolean onCreateOptionsMenu(Menu menu) {
+		getSupportMenuInflater().inflate(R.menu.chat_options, menu);
+		return true;
+	}
+	
 	private void registerXMPPService() {
 		Log.i(TAG, "called startXMPPService()");
 		mServiceIntent = new Intent(this, XMPPService.class);
@@ -332,8 +355,8 @@ public class ChatWindow extends SherlockListActivity implements OnKeyListener,
 			boolean from_me = (cursor.getInt(cursor
 					.getColumnIndex(ChatProvider.ChatConstants.DIRECTION)) ==
 					ChatConstants.OUTGOING);
-			String jid = cursor.getString(cursor
-					.getColumnIndex(ChatProvider.ChatConstants.JID));
+			String sender = cursor.getString(cursor
+					.getColumnIndex(ChatProvider.ChatConstants.SENDER));
 			int delivery_status = cursor.getInt(cursor
 					.getColumnIndex(ChatProvider.ChatConstants.DELIVERY_STATUS));
 
@@ -350,8 +373,8 @@ public class ChatWindow extends SherlockListActivity implements OnKeyListener,
 				markAsReadDelayed(_id, DELAY_NEWMSG);
 			}
 
-			String from = jid;
-			if (jid.equals(mJID))
+			String from = sender;
+			if (sender.equals(mJID))
 				from = mScreenName;
 			wrapper.populateFrom(date, from_me, from, message, delivery_status);
 
@@ -505,21 +528,103 @@ public class ChatWindow extends SherlockListActivity implements OnKeyListener,
 
 	@Override
 	public boolean onOptionsItemSelected(com.actionbarsherlock.view.MenuItem item) {
+		File file = new File(Environment.getExternalStorageDirectory().getPath());
 		switch (item.getItemId()) {
 		case android.R.id.home:
 			Intent intent = new Intent(this, MainWindow.class);
 			intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
 			startActivity(intent);
 			return true;
+		case R.id.menu_send_file:
+			Intent fileIntent = new Intent(getApplicationContext(), FileExplore.class);
+			fileIntent.setAction(android.content.Intent.ACTION_VIEW);
+			fileIntent.setDataAndType(Uri.fromFile(file), "*/*");
+			startActivityForResult(fileIntent, R.id.menu_send_file);
+			return true;
+		case R.id.menu_groupchat:
+			startGroupChatStep1();
+			return true;
 		default:
 			return super.onOptionsItemSelected(item);
 		}
+	}
+	
+	@Override
+	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+		String selectedFile = data.getStringExtra("selectedFile");
+		Crypto crypto = YaximApplication.getApp(getApplicationContext()).mCrypto;
+		long ms = new Date().getTime();
+		if (selectedFile != null) {
+			switch (requestCode) {
+			case R.id.menu_send_file:
+				try {
+					FileInputStream in = new FileInputStream(selectedFile);
+					FileOutputStream out = new FileOutputStream(selectedFile + ".encrypted");
+					crypto.encrypt(in, out, mConfig.jabberID, mWithJabberID);
+					mServiceAdapter.sendFile(mWithJabberID + "/Smack", selectedFile + ".encrypted");
+				}
+				catch (Exception ex) {
+					Log.w(TAG, ex.getMessage(), ex);
+				}
+				break;
+			}
+		}
+		Log.i(TAG, "Es hat " + (new Date().getTime() - ms) + " ms gedauert");
+	}
+	
+	private void startGroupChatStep1() {
+		final List<String> jids = new ArrayList<String>();
+		final List<String> names = new ArrayList<String>();
+		final Set<String> selectedJids = new HashSet<String>();
+		Cursor c = getContentResolver().query(RosterProvider.PARTICIPANTS_URI, new String[] {  ParticipantConstants._ID, ParticipantConstants.JID, ParticipantConstants.NAME }, 
+				ParticipantConstants.ROOM + " = ? and " + ParticipantConstants.JID + " != ?", 
+				new String[] { mWithJabberID, mConfig.jabberID }, ParticipantConstants.NAME);
+		while (c.moveToNext()) {
+			jids.add(c.getString(1));
+			names.add(c.getString(2));
+		}
+		new AlertDialog.Builder(this)
+			.setTitle(R.string.rooms_participants)
+			.setMultiChoiceItems(names.toArray(new String[]{}), null, new DialogInterface.OnMultiChoiceClickListener() {
+               @Override
+               public void onClick(DialogInterface dialog, int which, boolean isChecked) {
+                   if (isChecked) {
+                       selectedJids.add(jids.get(which));
+                   } else {
+                       selectedJids.remove(jids.get(which));
+                   }
+               }
+           })
+		.setPositiveButton(android.R.string.ok,
+				new DialogInterface.OnClickListener() {
+					public void onClick(DialogInterface dialog, int which) {
+						startGroupChatStep2(selectedJids);
+					}
+				})
+		.setNegativeButton(android.R.string.cancel, null)
+		.create().show();
+	}
+	
+	private void startGroupChatStep2(final Set<String> participants) {
+		final EditText input = new EditText(this);
+		new AlertDialog.Builder(this)
+		.setTitle(R.string.rooms_title)
+		.setView(input)
+		.setPositiveButton(android.R.string.ok,
+				new DialogInterface.OnClickListener() {
+					public void onClick(DialogInterface dialog, int which) {
+						mServiceAdapter.openRoom(mWithJabberID, input.getText().toString(), participants);
+					}
+				})
+		.setNegativeButton(android.R.string.cancel, null)
+		.create().show();
 	}
 
 	private static final String[] STATUS_QUERY = new String[] {
 		RosterProvider.RosterConstants.STATUS_MODE,
 		RosterProvider.RosterConstants.STATUS_MESSAGE,
 	};
+	
 	private void updateContactStatus() {
 		Cursor cursor = getContentResolver().query(RosterProvider.CONTENT_URI, STATUS_QUERY,
 					RosterProvider.RosterConstants.JID + " = ?", new String[] { mWithJabberID }, null);

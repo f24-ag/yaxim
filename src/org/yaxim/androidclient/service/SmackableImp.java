@@ -1,8 +1,12 @@
 package org.yaxim.androidclient.service;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
+import java.util.List;
+
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.X509TrustManager;
 
@@ -15,9 +19,7 @@ import org.jivesoftware.smack.RosterEntry;
 import org.jivesoftware.smack.RosterGroup;
 import org.jivesoftware.smack.RosterListener;
 import org.jivesoftware.smack.SmackConfiguration;
-import org.jivesoftware.smack.XMPPConnection;
 import org.jivesoftware.smack.XMPPException;
-import org.jivesoftware.smack.filter.PacketFilter;
 import org.jivesoftware.smack.filter.PacketTypeFilter;
 import org.jivesoftware.smack.packet.IQ;
 import org.jivesoftware.smack.packet.IQ.Type;
@@ -29,37 +31,63 @@ import org.jivesoftware.smack.provider.ProviderManager;
 import org.jivesoftware.smack.util.DNSUtil;
 import org.jivesoftware.smack.util.StringUtils;
 import org.jivesoftware.smack.util.dns.DNSJavaResolver;
-import org.jivesoftware.smackx.entitycaps.EntityCapsManager;
-import org.jivesoftware.smackx.entitycaps.cache.SimpleDirectoryPersistentCache;
 import org.jivesoftware.smackx.ServiceDiscoveryManager;
 import org.jivesoftware.smackx.carbons.Carbon;
 import org.jivesoftware.smackx.carbons.CarbonManager;
+import org.jivesoftware.smackx.entitycaps.EntityCapsManager;
+import org.jivesoftware.smackx.entitycaps.cache.SimpleDirectoryPersistentCache;
 import org.jivesoftware.smackx.entitycaps.provider.CapsExtensionProvider;
 import org.jivesoftware.smackx.forward.Forwarded;
-import org.jivesoftware.smackx.provider.DelayInfoProvider;
-import org.jivesoftware.smackx.provider.DiscoverInfoProvider;
-import org.jivesoftware.smackx.provider.DiscoverItemsProvider;
-import org.jivesoftware.smackx.packet.DelayInformation;
 import org.jivesoftware.smackx.packet.DelayInfo;
+import org.jivesoftware.smackx.packet.DelayInformation;
 import org.jivesoftware.smackx.packet.DiscoverInfo;
 import org.jivesoftware.smackx.packet.Version;
 import org.jivesoftware.smackx.ping.PingManager;
-import org.jivesoftware.smackx.ping.packet.*;
+import org.jivesoftware.smackx.ping.packet.Ping;
 import org.jivesoftware.smackx.ping.provider.PingProvider;
+import org.jivesoftware.smackx.provider.DelayInfoProvider;
+import org.jivesoftware.smackx.provider.DiscoverInfoProvider;
+import org.jivesoftware.smackx.provider.DiscoverItemsProvider;
+import org.jivesoftware.smackx.provider.HeaderProvider;
+import org.jivesoftware.smackx.provider.HeadersProvider;
+import org.jivesoftware.smackx.pubsub.EventElement;
+import org.jivesoftware.smackx.pubsub.EventElementType;
+import org.jivesoftware.smackx.pubsub.Item;
+import org.jivesoftware.smackx.pubsub.ItemsExtension;
+import org.jivesoftware.smackx.pubsub.LeafNode;
+import org.jivesoftware.smackx.pubsub.PayloadItem;
+import org.jivesoftware.smackx.pubsub.PubSubManager;
+import org.jivesoftware.smackx.pubsub.SimplePayload;
+import org.jivesoftware.smackx.pubsub.Subscription;
+import org.jivesoftware.smackx.pubsub.provider.AffiliationProvider;
+import org.jivesoftware.smackx.pubsub.provider.AffiliationsProvider;
+import org.jivesoftware.smackx.pubsub.provider.ConfigEventProvider;
+import org.jivesoftware.smackx.pubsub.provider.EventProvider;
+import org.jivesoftware.smackx.pubsub.provider.FormNodeProvider;
+import org.jivesoftware.smackx.pubsub.provider.ItemProvider;
+import org.jivesoftware.smackx.pubsub.provider.ItemsProvider;
+import org.jivesoftware.smackx.pubsub.provider.PubSubProvider;
+import org.jivesoftware.smackx.pubsub.provider.RetractEventProvider;
+import org.jivesoftware.smackx.pubsub.provider.SimpleNodeProvider;
+import org.jivesoftware.smackx.pubsub.provider.SubscriptionProvider;
+import org.jivesoftware.smackx.pubsub.provider.SubscriptionsProvider;
 import org.jivesoftware.smackx.receipts.DeliveryReceipt;
 import org.jivesoftware.smackx.receipts.DeliveryReceiptManager;
 import org.jivesoftware.smackx.receipts.DeliveryReceiptRequest;
 import org.jivesoftware.smackx.receipts.ReceiptReceivedListener;
 import org.yaxim.androidclient.YaximApplication;
+import org.yaxim.androidclient.crypto.Crypto;
+import org.yaxim.androidclient.crypto.KeyRetriever;
 import org.yaxim.androidclient.data.ChatProvider;
-import org.yaxim.androidclient.data.RosterProvider;
-import org.yaxim.androidclient.data.YaximConfiguration;
 import org.yaxim.androidclient.data.ChatProvider.ChatConstants;
+import org.yaxim.androidclient.data.RosterProvider;
+import org.yaxim.androidclient.data.RosterProvider.ParticipantConstants;
+import org.yaxim.androidclient.data.RosterProvider.RoomsConstants;
 import org.yaxim.androidclient.data.RosterProvider.RosterConstants;
+import org.yaxim.androidclient.data.YaximConfiguration;
 import org.yaxim.androidclient.exceptions.YaximXMPPException;
 import org.yaxim.androidclient.util.ConnectionState;
 import org.yaxim.androidclient.util.LogConstants;
-import org.yaxim.androidclient.util.PreferenceConstants;
 import org.yaxim.androidclient.util.StatusMode;
 
 import android.app.AlarmManager;
@@ -72,9 +100,15 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.database.Cursor;
-
 import android.net.Uri;
 import android.util.Log;
+import de.f24.rooms.messages.Envelope;
+import de.f24.rooms.messages.Invitation;
+import de.f24.rooms.messages.OpenRoomRequest;
+import de.f24.rooms.messages.Participant;
+import de.f24.rooms.messages.RoomConfiguration;
+import de.f24.rooms.messages.RoomsMessage;
+import de.f24.rooms.messages.TextMessage;
 
 public class SmackableImp implements Smackable {
 	final static private String TAG = "yaxim.SmackableImp";
@@ -128,7 +162,35 @@ public class SmackableImp implements Smackable {
 		
 		// XEP-0115 Entity Capabilities
 		pm.addExtensionProvider("c", "http://jabber.org/protocol/caps", new CapsExtensionProvider());
+		
+		 // SHIM
+		pm.addExtensionProvider("headers", "http://jabber.org/protocol/shim", new HeadersProvider());
+		pm.addExtensionProvider("header", "http://jabber.org/protocol/shim", new HeaderProvider());
 
+		// PubSub
+		pm.addIQProvider("pubsub", "http://jabber.org/protocol/pubsub", new PubSubProvider());
+        pm.addExtensionProvider("create", "http://jabber.org/protocol/pubsub", new SimpleNodeProvider());
+        pm.addExtensionProvider("items", "http://jabber.org/protocol/pubsub", new ItemsProvider());
+        pm.addExtensionProvider("item", "http://jabber.org/protocol/pubsub", new ItemProvider());
+        pm.addExtensionProvider("subscriptions", "http://jabber.org/protocol/pubsub", new SubscriptionsProvider());
+        pm.addExtensionProvider("subscription", "http://jabber.org/protocol/pubsub", new SubscriptionProvider());
+        pm.addExtensionProvider("affiliations", "http://jabber.org/protocol/pubsub", new AffiliationsProvider());
+        pm.addExtensionProvider("affiliation", "http://jabber.org/protocol/pubsub", new AffiliationProvider());
+        pm.addExtensionProvider("options", "http://jabber.org/protocol/pubsub", new FormNodeProvider());
+        // PubSub owner
+        pm.addIQProvider("pubsub", "http://jabber.org/protocol/pubsub#owner", new PubSubProvider());
+        pm.addExtensionProvider("configure", "http://jabber.org/protocol/pubsub#owner", new FormNodeProvider());
+        pm.addExtensionProvider("default", "http://jabber.org/protocol/pubsub#owner", new FormNodeProvider());
+        // PubSub event
+        pm.addExtensionProvider("event", "http://jabber.org/protocol/pubsub#event", new EventProvider());
+        pm.addExtensionProvider("configuration", "http://jabber.org/protocol/pubsub#event", new ConfigEventProvider());
+        pm.addExtensionProvider("delete", "http://jabber.org/protocol/pubsub#event", new SimpleNodeProvider());
+        pm.addExtensionProvider("options", "http://jabber.org/protocol/pubsub#event", new FormNodeProvider());
+        pm.addExtensionProvider("items", "http://jabber.org/protocol/pubsub#event", new ItemsProvider());
+        pm.addExtensionProvider("item", "http://jabber.org/protocol/pubsub#event", new ItemProvider());
+        pm.addExtensionProvider("retract", "http://jabber.org/protocol/pubsub#event", new RetractEventProvider());
+        pm.addExtensionProvider("purge", "http://jabber.org/protocol/pubsub#event", new SimpleNodeProvider());
+		
 		XmppStreamHandler.addExtensionProviders();
 	}
 
@@ -138,7 +200,7 @@ public class SmackableImp implements Smackable {
 	private XmppStreamHandler mStreamHandler;
 	private Thread mConnectingThread;
 	private Object mConnectingThreadMutex = new Object();
-
+	private PubSubManager pubSub;
 
 	private ConnectionState mRequestedState = ConnectionState.OFFLINE;
 	private ConnectionState mState = ConnectionState.OFFLINE;
@@ -168,7 +230,7 @@ public class SmackableImp implements Smackable {
 
 	private PongTimeoutAlarmReceiver mPongTimeoutAlarmReceiver = new PongTimeoutAlarmReceiver();
 	private BroadcastReceiver mPingAlarmReceiver = new PingAlarmReceiver();
-
+	private Crypto crypto;
 
 	public SmackableImp(YaximConfiguration config,
 			ContentResolver contentResolver,
@@ -177,6 +239,7 @@ public class SmackableImp implements Smackable {
 		this.mContentResolver = contentResolver;
 		this.mService = service;
 		this.mAlarmManager = (AlarmManager)mService.getSystemService(Context.ALARM_SERVICE);
+		this.crypto = YaximApplication.getApp(mService).mCrypto;
 	}
 		
 	// this code runs a DNS resolver, might be blocking
@@ -214,6 +277,7 @@ public class SmackableImp implements Smackable {
 		mConfig.reconnect_required = false;
 
 		initServiceDiscovery();
+		pubSub = new PubSubManager(mXMPPConnection);
 	}
 
 	// blocking, run from a thread!
@@ -618,7 +682,9 @@ public class SmackableImp implements Smackable {
 	private void tryToAddRosterEntry(String user, String alias, String group)
 			throws YaximXMPPException {
 		try {
-			mRoster.createEntry(user, alias, new String[] { group });
+			if (mRoster != null) {
+				mRoster.createEntry(user, alias, new String[] { group });
+			}
 		} catch (XMPPException e) {
 			throw new YaximXMPPException("tryToAddRosterEntry", e);
 		}
@@ -709,13 +775,14 @@ public class SmackableImp implements Smackable {
 		cursor.close();
 	}
 
-	public static void sendOfflineMessage(ContentResolver cr, String toJID, String message) {
+	public static void sendOfflineMessage(ContentResolver cr, String toJID, String message, String myJID) {
 		ContentValues values = new ContentValues();
 		values.put(ChatConstants.DIRECTION, ChatConstants.OUTGOING);
 		values.put(ChatConstants.JID, toJID);
 		values.put(ChatConstants.MESSAGE, message);
 		values.put(ChatConstants.DELIVERY_STATUS, ChatConstants.DS_NEW);
 		values.put(ChatConstants.DATE, System.currentTimeMillis());
+		values.put(ChatConstants.SENDER, myJID);
 
 		cr.insert(ChatProvider.CONTENT_URI, values);
 	}
@@ -729,16 +796,53 @@ public class SmackableImp implements Smackable {
 
 	public void sendMessage(String toJID, String message) {
 		final Message newMessage = new Message(toJID, Message.Type.chat);
-		newMessage.setBody(message);
-		newMessage.addExtension(new DeliveryReceiptRequest());
+		
+		boolean isRoomMessage = toJID.indexOf('@') == -1;
+		TextMessage textMsg = new TextMessage();
+		textMsg.setFrom(mConfig.jabberID);
+		textMsg.setText(message);
+		
+		if (isRoomMessage) {
+			List<String> recipients = new ArrayList<String>();
+			for (Participant p : getRoomParticipants(toJID)) {
+				recipients.add(p.getJid());
+			}
+			textMsg.setRecipients(recipients);
+			String encryptedMsg = crypto.encryptEnvelope(new Envelope(textMsg));
+			String payload = "<body sender=\"" + mConfig.jabberID + "\">" + encryptedMsg + "</body>";
+			try {
+				LeafNode roomNode = pubSub.getNode("/f24_rooms/" + toJID);
+				roomNode.send(new PayloadItem<SimplePayload>("msg_" + System.currentTimeMillis(), 
+					new SimplePayload(null, null, payload)));
+			}
+			catch (Exception ex) {
+				Log.e(TAG, "Failed to publish pubsub message", ex);
+			}
+		} 
+		else {  // One-to-one message
+			try {
+				textMsg.setRecipients(Arrays.asList(toJID));
+				String encryptedMsg = crypto.encryptEnvelope(new Envelope(textMsg));
+				newMessage.setBody(encryptedMsg);
+			}
+			catch (Exception ex) {
+				ex.printStackTrace();
+				newMessage.setBody(message);
+			}
+			newMessage.addExtension(new DeliveryReceiptRequest());
+		}
+		
 		if (isAuthenticated()) {
-			addChatMessageToDB(ChatConstants.OUTGOING, toJID, message, ChatConstants.DS_SENT_OR_READ,
-					System.currentTimeMillis(), newMessage.getPacketID());
-			mXMPPConnection.sendPacket(newMessage);
-		} else {
+			if (!isRoomMessage) {
+				addChatMessageToDB(ChatConstants.OUTGOING, toJID, message, ChatConstants.DS_SENT_OR_READ,
+					System.currentTimeMillis(), newMessage.getPacketID(), toJID);
+				mXMPPConnection.sendPacket(newMessage);
+			}
+		} 
+		else {
 			// send offline -> store to DB
 			addChatMessageToDB(ChatConstants.OUTGOING, toJID, message, ChatConstants.DS_NEW,
-					System.currentTimeMillis(), newMessage.getPacketID());
+					System.currentTimeMillis(), newMessage.getPacketID(), toJID);
 		}
 	}
 
@@ -778,7 +882,7 @@ public class SmackableImp implements Smackable {
 	}
 	
 	public String getNameForJID(String jid) {
-		if (null != this.mRoster.getEntry(jid) && null != this.mRoster.getEntry(jid).getName() && this.mRoster.getEntry(jid).getName().length() > 0) {
+		if (this.mRoster != null && null != this.mRoster.getEntry(jid) && null != this.mRoster.getEntry(jid).getName() && this.mRoster.getEntry(jid).getName().length() > 0) {
 			return this.mRoster.getEntry(jid).getName();
 		} else {
 			return jid;
@@ -845,7 +949,7 @@ public class SmackableImp implements Smackable {
 
 				String jabberID = getBareJID(presence.getFrom());
 				RosterEntry rosterEntry = mRoster.getEntry(jabberID);
-				updateRosterEntryInDB(rosterEntry);
+				updateRosterEntry(rosterEntry);
 				mServiceCallBack.rosterChanged();
 			}
 		};
@@ -974,6 +1078,7 @@ public class SmackableImp implements Smackable {
 		mAlarmManager.setInexactRepeating(AlarmManager.RTC_WAKEUP, 
 				System.currentTimeMillis() + AlarmManager.INTERVAL_FIFTEEN_MINUTES, AlarmManager.INTERVAL_FIFTEEN_MINUTES, mPingAlarmPendIntent);
 	}
+	
 	private void unregisterPongListener() {
 		mAlarmManager.cancel(mPingAlarmPendIntent);
 		mAlarmManager.cancel(mPongTimeoutAlarmPendIntent);
@@ -1007,30 +1112,16 @@ public class SmackableImp implements Smackable {
 						ts = timestamp.getStamp().getTime();
 					else
 						ts = System.currentTimeMillis();
-
-					// try to extract a carbon
-					if (cc != null) {
-						Log.d(TAG, "carbon: " + cc.toXML());
-						msg = (Message)cc.getForwarded().getForwardedPacket();
-
-						// outgoing carbon: fromJID is actually chat peer's JID
-						if (cc.getDirection() == Carbon.Direction.sent) {
-							fromJID = getBareJID(msg.getTo());
-							direction = ChatConstants.OUTGOING;
-						} else {
-							fromJID = getBareJID(msg.getFrom());
-
-							// hook off carbonated delivery receipts
-							DeliveryReceipt dr = (DeliveryReceipt)msg.getExtension(
-									DeliveryReceipt.ELEMENT, DeliveryReceipt.NAMESPACE);
-							if (dr != null) {
-								Log.d(TAG, "got CC'ed delivery receipt for " + dr.getId());
-								changeMessageDeliveryStatus(dr.getId(), ChatConstants.DS_ACKED);
-							}
+					
+					// Extract pubsub info
+					EventElement eventElement = (EventElement)msg.getExtension("http://jabber.org/protocol/pubsub#event");
+					if (eventElement != null && eventElement.getEventType() == EventElementType.items) {
+						ItemsExtension itemsExt = (ItemsExtension)eventElement.getEvent();
+						for (Item item : (List<Item>)itemsExt.getItems()) {
+							processPubSubItem(item, new Date(), itemsExt.getNode().substring(itemsExt.getNode().lastIndexOf('/')+1));
 						}
+						return;
 					}
-
-					String chatMessage = msg.getBody();
 
 					// display error inline
 					if (msg.getType() == Message.Type.error) {
@@ -1038,21 +1129,20 @@ public class SmackableImp implements Smackable {
 							mServiceCallBack.messageError(fromJID, msg.getError().toString(), (cc != null));
 						return; // we do not want to add errors as "incoming messages"
 					}
-
+					
 					// ignore empty messages
-					if (chatMessage == null) {
+					if (msg.getBody() == null) {
 						Log.d(TAG, "empty message.");
 						return;
 					}
 
 					// carbons are old. all others are new
 					int is_new = (cc == null) ? ChatConstants.DS_NEW : ChatConstants.DS_SENT_OR_READ;
-					if (msg.getType() == Message.Type.error)
+					if (msg.getType() == Message.Type.error){
 						is_new = ChatConstants.DS_FAILED;
-
-					addChatMessageToDB(direction, fromJID, chatMessage, is_new, ts, msg.getPacketID());
-					if (direction == ChatConstants.INCOMING)
-						mServiceCallBack.newMessage(fromJID, chatMessage, (cc != null));
+					}
+					
+					processMessage(direction, fromJID, msg, is_new, ts);
 				}
 				} catch (Exception e) {
 					// SMACK silently discards exceptions dropped from processPacket :(
@@ -1063,6 +1153,98 @@ public class SmackableImp implements Smackable {
 		};
 
 		mXMPPConnection.addPacketListener(mPacketListener, filter);
+	}
+
+	protected void processMessage(int direction, String fromJID, Message msg, int is_new, long ts) {
+
+		if (msg.getBody() == null) {
+			return;
+		}
+		try {
+			Envelope env = crypto.decryptEnvelope(msg.getBody(), mConfig.jabberID, fromJID);
+			if (env == null) {
+				return;
+			}
+			RoomsMessage roomsMessage = env.getMessage();
+			if (roomsMessage instanceof TextMessage) {
+				TextMessage textMessage = (TextMessage)roomsMessage;
+				boolean isNew = addChatMessageToDB(direction, fromJID, textMessage.getText(), is_new, ts, msg.getPacketID(), textMessage.getFrom());
+				if (direction == ChatConstants.INCOMING && isNew) {
+					mServiceCallBack.newMessage(fromJID, textMessage.getText(), false);
+				}
+			}
+			else if (roomsMessage instanceof Invitation) {
+				final Invitation invitation = (Invitation)roomsMessage;
+				final RoomConfiguration config = invitation.getRoomConfiguration();
+				final ContentValues values = new ContentValues();
+				values.put(RoomsConstants.ID, config.getRoomID());
+				values.put(RoomsConstants.NAME, config.getRoomName());
+				values.put(RoomsConstants.STATUS, StatusMode.chat.ordinal());
+				values.put(RoomsConstants.CREATED, new Date().getTime());
+				values.put(RoomsConstants.TOPIC, "");
+				values.put(RoomsConstants.OWNER, config.getFrom());
+				values.put(RoomsConstants.LOGGER, "");
+				upsertRoom(values, config.getRoomID());
+				
+				upsertParticipants(config.getRoomID(), config.getParticipants());
+				for (Participant p : config.getParticipants()) {
+					crypto.getKeyRetriever().savePublicKey(p.getJid(), p.getPublicKey());
+				}
+				mServiceCallBack.rosterChanged();
+
+				LeafNode roomNode = pubSub.getNode("/f24_rooms/" + config.getRoomID());
+				List<Subscription> subs = roomNode.getSubscriptions();
+				if (subs.isEmpty()) {
+					subs.add(roomNode.subscribe(mConfig.jabberID));
+				}
+				for (org.jivesoftware.smackx.pubsub.Item item : roomNode.getItems(subs.get(0).getId())) {
+					processPubSubItem(item, new Date(), config.getRoomID());
+				}
+			}
+		}
+		catch (Exception ex) {
+			Log.e(TAG, ex.getMessage(), ex);
+		}
+	}
+	
+	private void processPubSubItem(org.jivesoftware.smackx.pubsub.Item item, Date publishDate, String roomID) {
+		SimplePayload payload = ((PayloadItem<SimplePayload>)item).getPayload();
+		String xml = payload.toXML();
+		Log.d(TAG, xml);
+		String sender = xml.substring(xml.indexOf("sender=\"") + 8, xml.lastIndexOf('"'));
+		String encryptedMessage = xml.substring(xml.indexOf('>') + 1, xml.lastIndexOf('<'));
+		Envelope envelope = crypto.decryptEnvelope(encryptedMessage, mConfig.jabberID, sender);
+		if (envelope != null) try {
+			if (envelope.getMessage() instanceof RoomConfiguration) { // Room configuration changed
+				RoomConfiguration configuration = (RoomConfiguration)envelope.getMessage();
+				final ContentValues values = new ContentValues();
+				values.put(RoomsConstants.ID, configuration.getRoomID());
+				values.put(RoomsConstants.NAME, configuration.getRoomName());
+				values.put(RoomsConstants.STATUS, StatusMode.chat.ordinal());
+				values.put(RoomsConstants.CREATED, publishDate.getTime());
+				values.put(RoomsConstants.TOPIC, "");
+				values.put(RoomsConstants.OWNER, configuration.getFrom());
+				values.put(RoomsConstants.LOGGER, "");
+				upsertRoom(values, configuration.getRoomID());
+				
+				upsertParticipants(configuration.getRoomID(), configuration.getParticipants());
+				for (Participant p : configuration.getParticipants()) {
+					crypto.getKeyRetriever().savePublicKey(p.getJid(), p.getPublicKey());
+				}
+				mServiceCallBack.rosterChanged();
+			}
+			else if (envelope.getMessage() instanceof TextMessage) {
+				TextMessage textMessage = (TextMessage)envelope.getMessage();
+				String text = textMessage.getText();
+				if (addChatMessageToDB(ChatConstants.INCOMING, roomID, text, 1, publishDate.getTime(), item.getId(), textMessage.getFrom()) 
+						&& !textMessage.getFrom().equals(mConfig.jabberID)){
+					mServiceCallBack.newMessage(textMessage.getFrom(), text, false);
+				}
+			}
+		}
+		catch (Exception ex) {
+			Log.e(TAG, ex.getMessage(), ex);
+		}
 	}
 
 	private void registerPresenceListener() {
@@ -1092,18 +1274,23 @@ public class SmackableImp implements Smackable {
 		mXMPPConnection.addPacketListener(mPresenceListener, new PacketTypeFilter(Presence.class));
 	}
 
-	private void addChatMessageToDB(int direction, String JID,
-			String message, int delivery_status, long ts, String packetID) {
+	private boolean addChatMessageToDB(int direction, String JID,
+			String message, int delivery_status, long ts, String packetID, String sender) {
 		ContentValues values = new ContentValues();
-
 		values.put(ChatConstants.DIRECTION, direction);
 		values.put(ChatConstants.JID, JID);
 		values.put(ChatConstants.MESSAGE, message);
 		values.put(ChatConstants.DELIVERY_STATUS, delivery_status);
 		values.put(ChatConstants.DATE, ts);
 		values.put(ChatConstants.PACKET_ID, packetID);
+		values.put(ChatConstants.SENDER, sender);
 
-		mContentResolver.insert(ChatProvider.CONTENT_URI, values);
+		if (mContentResolver.update(ChatProvider.CONTENT_URI, values,
+				ChatConstants.PACKET_ID + " = ?", new String[] { packetID }) == 0) {
+			mContentResolver.insert(ChatProvider.CONTENT_URI, values);
+			return true;
+		}
+		return false;
 	}
 
 	private ContentValues getContentValuesForRosterEntry(final RosterEntry entry) {
@@ -1130,11 +1317,49 @@ public class SmackableImp implements Smackable {
 		upsertRoster(getContentValuesForRosterEntry(entry), entry.getUser());
 	}
 
+	private void updateRosterEntry(final RosterEntry entry) {
+		mContentResolver.update(RosterProvider.CONTENT_URI, getContentValuesForRosterEntry(entry),
+				RosterConstants.JID + " = ?", new String[] { entry.getUser() });
+	}
+
 	private void upsertRoster(final ContentValues values, String jid) {
 		if (mContentResolver.update(RosterProvider.CONTENT_URI, values,
 				RosterConstants.JID + " = ?", new String[] { jid }) == 0) {
 			mContentResolver.insert(RosterProvider.CONTENT_URI, values);
 		}
+	}
+
+	private void upsertRoom(final ContentValues values, String roomID) {
+		if (mContentResolver.update(RosterProvider.ROOMS_URI, values,
+				RoomsConstants.ID + " = ?", new String[] { roomID }) == 0) {
+			mContentResolver.insert(RosterProvider.ROOMS_URI, values);
+		}
+	}
+	
+	private void upsertParticipants(final String roomID, List<Participant> participants) {
+		mContentResolver.delete(RosterProvider.PARTICIPANTS_URI, 
+				ParticipantConstants.ROOM + " = ?", new String[] { roomID });
+		ContentValues values = new ContentValues();
+		values.put(ParticipantConstants.ROOM, roomID);
+		for (Participant p : participants) {
+			values.put(ParticipantConstants.JID, p.getJid());
+			values.put(ParticipantConstants.NAME, p.getName());
+			mContentResolver.insert(RosterProvider.PARTICIPANTS_URI, values);
+		}
+	}
+	
+	private List<Participant> getRoomParticipants(String roomID) {
+		Cursor c = mContentResolver.query(RosterProvider.PARTICIPANTS_URI, 
+				ParticipantConstants.getRequiredColumns().toArray(new String[] {}), 
+				ParticipantConstants.ROOM + " = ?", new String[] { roomID }, null);
+		List<Participant> participants = new ArrayList<Participant>();
+		while (c.moveToNext()) {
+			Participant p = new Participant();
+			p.setJid(c.getString(c.getColumnIndex(ParticipantConstants.JID)));
+			p.setName(c.getString(c.getColumnIndex(ParticipantConstants.NAME)));
+			participants.add(p);
+		}
+		return participants;
 	}
 
 	private String getGroup(Collection<RosterGroup> groups) {
@@ -1181,5 +1406,34 @@ public class SmackableImp implements Smackable {
 	@Override
 	public String getLastError() {
 		return mLastError;
+	}
+
+	@Override
+	public void sendFile(String jid, String fileName) {
+		// TODO Auto-generated method stub
+	}
+
+	@Override
+	public void openRoom(String parentRoomID, String topic, String[] participants) {
+		String roomName = topic;
+		if (parentRoomID != null) {
+			Cursor c = mContentResolver.query(RosterProvider.ROOMS_URI, new String[] { RoomsConstants.NAME }, 
+					RoomsConstants.ID + " = ?", new String[] {parentRoomID}, null);
+			if (c.moveToNext()) {
+				roomName = c.getString(0) + "/" + roomName;
+			}
+		}
+		OpenRoomRequest request = new OpenRoomRequest();
+		request.setFrom(mConfig.jabberID);
+		request.setRecipients(Arrays.asList(KeyRetriever.ROOMS_SERVER));
+		request.setRoomName(roomName);
+		request.setParticipants(new ArrayList<String>());
+		request.getParticipants().addAll(Arrays.asList(participants));
+		request.getParticipants().add(mConfig.jabberID);
+		String encryptedMsg = crypto.encryptEnvelope(new Envelope(request));
+		
+		final Message newMessage = new Message(KeyRetriever.ROOMS_SERVER, Message.Type.chat);
+		newMessage.setBody(encryptedMsg);
+		mXMPPConnection.sendPacket(newMessage);
 	}
 }

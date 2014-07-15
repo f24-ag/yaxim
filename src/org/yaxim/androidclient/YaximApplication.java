@@ -1,11 +1,12 @@
 package org.yaxim.androidclient;
 
+import org.yaxim.androidclient.crypto.Crypto;
+import org.yaxim.androidclient.crypto.DBKeyRetriever;
 import org.yaxim.androidclient.data.YaximConfiguration;
 
 import android.app.Application;
 import android.content.Context;
 import android.preference.PreferenceManager;
-
 import de.duenndns.ssl.MemorizingTrustManager;
 
 public class YaximApplication extends Application {
@@ -19,6 +20,8 @@ public class YaximApplication extends Application {
 	public MemorizingTrustManager mMTM;
 
 	private YaximConfiguration mConfig;
+	
+	public Crypto mCrypto;
 
 	public YaximApplication() {
 		super();
@@ -29,6 +32,8 @@ public class YaximApplication extends Application {
 		mMTM = new MemorizingTrustManager(this);
 		mConfig = new YaximConfiguration(PreferenceManager
 				.getDefaultSharedPreferences(this));
+		//mCrypto = new Crypto(new FileKeyRetriever(this));
+		mCrypto = new Crypto(new DBKeyRetriever(getContentResolver()));
 	}
 
 	public static YaximApplication getApp(Context ctx) {

@@ -28,4 +28,6 @@ public interface Smackable {
 	void unRegisterCallback();
 	
 	String getNameForJID(String jid);
+	void sendFile(String jid, String fileName);
+	void openRoom(String parentRoomID, String topic, String[] participants);
 }

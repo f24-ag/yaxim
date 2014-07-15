@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    android:orientation="vertical" >
+
+    <TextView
+        android:id="@+id/error_view"
+        style="?ErrorView"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:focusable="true"
+        android:text=""
+        android:visibility="gone" />
+    
+    <TextView 
+        android:id="@+id/android:roomsHeader"
+		style="?attr/MainGroup"
+		android:paddingLeft="10dp"
+		android:paddingStart="10dp"
+		android:paddingRight="4dp"
+		android:paddingEnd="4dp"
+		android:layout_width="fill_parent"
+		android:layout_height="wrap_content"
+		android:ellipsize="end"
+		android:text="@string/rooms.openRooms"
+		/>
+
+    <ListView
+        android:id="@+id/roomsList"
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
+        android:cacheColorHint="#0000"
+        android:clickable="true"
+        android:divider="#0000"
+        android:fadingEdge="none"
+        android:focusable="true" >
+
+    </ListView>
+
+</LinearLayout>

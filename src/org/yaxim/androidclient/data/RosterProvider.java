@@ -25,10 +25,19 @@ public class RosterProvider extends ContentProvider {
 	public static final String AUTHORITY = "org.yaxim.androidclient.provider.Roster";
 	public static final String TABLE_ROSTER = "roster";
 	public static final String TABLE_GROUPS = "groups";
+	public static final String TABLE_ROOMS = "rooms";
+	public static final String TABLE_PARTICIPANTS = "participants";
+	public static final String TABLE_KEYS = "keys";
 	public static final Uri CONTENT_URI = Uri.parse("content://" + AUTHORITY
 			+ "/" + TABLE_ROSTER);
 	public static final Uri GROUPS_URI = Uri.parse("content://" + AUTHORITY
 			+ "/" + TABLE_GROUPS);
+	public static final Uri ROOMS_URI = Uri.parse("content://" + AUTHORITY
+			+ "/" + TABLE_ROOMS);
+	public static final Uri PARTICIPANTS_URI = Uri.parse("content://" + AUTHORITY
+			+ "/" + TABLE_PARTICIPANTS);
+	public static final Uri KEYS_URI = Uri.parse("content://" + AUTHORITY
+			+ "/" + TABLE_KEYS);
 	public static final String QUERY_ALIAS = "main_result";
 
 	private static final UriMatcher URI_MATCHER = new UriMatcher(
@@ -37,12 +46,24 @@ public class RosterProvider extends ContentProvider {
 	private static final int CONTACT_ID = 2;
 	private static final int GROUPS = 3;
 	private static final int GROUP_MEMBERS = 4;
+	private static final int ROOMS = 5;
+	private static final int ROOM_ID = 6;
+	private static final int PARTICIPANTS = 7;
+	private static final int PARTICIPANT_ID = 8;
+	private static final int KEYS = 9;
+	private static final int KEYS_ID = 10;
 
 	static {
 		URI_MATCHER.addURI(AUTHORITY, "roster", CONTACTS);
 		URI_MATCHER.addURI(AUTHORITY, "roster/#", CONTACT_ID);
 		URI_MATCHER.addURI(AUTHORITY, "groups", GROUPS);
 		URI_MATCHER.addURI(AUTHORITY, "groups/*", GROUP_MEMBERS);
+		URI_MATCHER.addURI(AUTHORITY, "rooms", ROOMS);
+		URI_MATCHER.addURI(AUTHORITY, "rooms/#", ROOM_ID);
+		URI_MATCHER.addURI(AUTHORITY, "participants", PARTICIPANTS);
+		URI_MATCHER.addURI(AUTHORITY, "participants/#", PARTICIPANT_ID);
+		URI_MATCHER.addURI(AUTHORITY, "keys", KEYS);
+		URI_MATCHER.addURI(AUTHORITY, "keys/#", KEYS_ID);
 	}
 
 	private static final String TAG = "yaxim.RosterProvider";
@@ -52,6 +73,7 @@ public class RosterProvider extends ContentProvider {
 			Log.d(TAG, "notifying change");
 			getContext().getContentResolver().notifyChange(CONTENT_URI, null);
 			getContext().getContentResolver().notifyChange(GROUPS_URI, null);
+			getContext().getContentResolver().notifyChange(ROOMS_URI, null);
 		}
 	};
 	private Handler mNotifyHandler = new Handler();
@@ -66,6 +88,7 @@ public class RosterProvider extends ContentProvider {
 	public int delete(Uri url, String where, String[] whereArgs) {
 		SQLiteDatabase db = mOpenHelper.getWritableDatabase();
 		int count;
+		String segment;
 		switch (URI_MATCHER.match(url)) {
 
 		case CONTACTS:
@@ -73,8 +96,7 @@ public class RosterProvider extends ContentProvider {
 			break;
 
 		case CONTACT_ID:
-			String segment = url.getPathSegments().get(1);
-
+			segment = url.getPathSegments().get(1);
 			if (TextUtils.isEmpty(where)) {
 				where = "_id=" + segment;
 			} else {
@@ -82,6 +104,38 @@ public class RosterProvider extends ContentProvider {
 			}
 
 			count = db.delete(TABLE_ROSTER, where, whereArgs);
+			break;
+
+		case ROOMS:
+			count = db.delete(TABLE_ROOMS, where, whereArgs);
+			break;
+
+		case ROOM_ID:
+			segment = url.getPathSegments().get(1);
+			if (TextUtils.isEmpty(where)) {
+				where = "_id=" + segment;
+			} else {
+				where = "_id=" + segment + " AND (" + where + ")";
+			}
+			count = db.delete(TABLE_ROOMS, where, whereArgs);
+			break;
+
+		case PARTICIPANTS:
+			count = db.delete(TABLE_PARTICIPANTS, where, whereArgs);
+			break;
+
+		case PARTICIPANT_ID:
+			segment = url.getPathSegments().get(1);
+			if (TextUtils.isEmpty(where)) {
+				where = "_id=" + segment;
+			} else {
+				where = "_id=" + segment + " AND (" + where + ")";
+			}
+			count = db.delete(TABLE_PARTICIPANTS, where, whereArgs);
+			break;
+
+		case KEYS:
+			count = db.delete(TABLE_KEYS, where, whereArgs);
 			break;
 
 		default:
@@ -102,6 +156,18 @@ public class RosterProvider extends ContentProvider {
 			return RosterConstants.CONTENT_TYPE;
 		case CONTACT_ID:
 			return RosterConstants.CONTENT_ITEM_TYPE;
+		case ROOMS:
+			return RoomsConstants.CONTENT_TYPE;
+		case ROOM_ID:
+			return RoomsConstants.CONTENT_ITEM_TYPE;
+		case PARTICIPANTS:
+			return ParticipantConstants.CONTENT_TYPE;
+		case PARTICIPANT_ID:
+			return ParticipantConstants.CONTENT_ITEM_TYPE;
+		case KEYS:
+			return ParticipantConstants.CONTENT_TYPE;
+		case KEYS_ID:
+			return ParticipantConstants.CONTENT_ITEM_TYPE;
 		default:
 			throw new IllegalArgumentException("Unknown URL");
 		}
@@ -109,32 +175,64 @@ public class RosterProvider extends ContentProvider {
 
 	@Override
 	public Uri insert(Uri url, ContentValues initialValues) {
-		if (URI_MATCHER.match(url) != CONTACTS) {
-			throw new IllegalArgumentException("Cannot insert into URL: " + url);
-		}
-
+		SQLiteDatabase db = mOpenHelper.getWritableDatabase();
 		ContentValues values = (initialValues != null) ? new ContentValues(
 				initialValues) : new ContentValues();
 
-		for (String colName : RosterConstants.getRequiredColumns()) {
-			if (values.containsKey(colName) == false) {
-				throw new IllegalArgumentException("Missing column: " + colName);
+		if (URI_MATCHER.match(url) == CONTACTS) {
+			for (String colName : RosterConstants.getRequiredColumns()) {
+				if (values.containsKey(colName) == false) {
+					throw new IllegalArgumentException("Missing column: " + colName);
+				}
 			}
+			long rowId = db.insert(TABLE_ROSTER, RosterConstants.JID, values);
+			if (rowId < 0) {
+				throw new SQLException("Failed to insert row into " + url);
+			}
+			Uri noteUri = ContentUris.withAppendedId(CONTENT_URI, rowId);
+			notifyChange();
+			return noteUri;
 		}
-
-		SQLiteDatabase db = mOpenHelper.getWritableDatabase();
-
-		long rowId = db.insert(TABLE_ROSTER, RosterConstants.JID, values);
-
-		if (rowId < 0) {
-			throw new SQLException("Failed to insert row into " + url);
+		else if (URI_MATCHER.match(url) == ROOMS) {
+			for (String colName : RoomsConstants.getRequiredColumns()) {
+				if (values.containsKey(colName) == false) {
+					throw new IllegalArgumentException("Missing column: " + colName);
+				}
+			}
+			long rowId = db.insert(TABLE_ROOMS, RoomsConstants.ID, values);
+			if (rowId < 0) {
+				throw new SQLException("Failed to insert row into " + url);
+			}
+			Uri noteUri = ContentUris.withAppendedId(CONTENT_URI, rowId);
+			notifyChange();
+			return noteUri;
+		} 
+		else if (URI_MATCHER.match(url) == PARTICIPANTS) {
+			for (String colName : ParticipantConstants.getRequiredColumns()) {
+				if (values.containsKey(colName) == false) {
+					throw new IllegalArgumentException("Missing column: " + colName);
+				}
+			}
+			long rowId = db.insert(TABLE_PARTICIPANTS, ParticipantConstants.JID, values);
+			if (rowId < 0) {
+				throw new SQLException("Failed to insert row into " + url);
+			}
+			Uri noteUri = ContentUris.withAppendedId(CONTENT_URI, rowId);
+			notifyChange();
+			return noteUri;
+		} 
+		else if (URI_MATCHER.match(url) == KEYS) {
+			long rowId = db.insert(TABLE_KEYS, KeysConstants.JID, values);
+			if (rowId < 0) {
+				throw new SQLException("Failed to insert row into " + url);
+			}
+			Uri noteUri = ContentUris.withAppendedId(CONTENT_URI, rowId);
+			notifyChange();
+			return noteUri;
+		} 
+		else {
+			throw new IllegalArgumentException("Cannot insert into this uri: " + url);
 		}
-
-		Uri noteUri = ContentUris.withAppendedId(CONTENT_URI, rowId);
-
-		notifyChange();
-
-		return noteUri;
 	}
 
 	@Override
@@ -174,6 +272,36 @@ public class RosterProvider extends ContentProvider {
 			qBuilder.appendWhere(url.getPathSegments().get(1));
 			break;
 
+		case ROOMS:
+			qBuilder.setTables(TABLE_ROOMS + " " + QUERY_ALIAS);
+			break;
+
+		case ROOM_ID:
+			qBuilder.setTables(TABLE_ROOMS + " " + QUERY_ALIAS);
+			qBuilder.appendWhere("_id=");
+			qBuilder.appendWhere(url.getPathSegments().get(1));
+			break;
+
+		case PARTICIPANTS:
+			qBuilder.setTables(TABLE_PARTICIPANTS + " " + QUERY_ALIAS);
+			break;
+
+		case PARTICIPANT_ID:
+			qBuilder.setTables(TABLE_PARTICIPANTS + " " + QUERY_ALIAS);
+			qBuilder.appendWhere("_id=");
+			qBuilder.appendWhere(url.getPathSegments().get(1));
+			break;
+
+		case KEYS:
+			qBuilder.setTables(TABLE_KEYS + " " + QUERY_ALIAS);
+			break;
+
+		case KEYS_ID:
+			qBuilder.setTables(TABLE_KEYS + " " + QUERY_ALIAS);
+			qBuilder.appendWhere("_id=");
+			qBuilder.appendWhere(url.getPathSegments().get(1));
+			break;
+
 		default:
 			throw new IllegalArgumentException("Unknown URL " + url);
 		}
@@ -205,15 +333,40 @@ public class RosterProvider extends ContentProvider {
 		long rowId = 0;
 		int match = URI_MATCHER.match(url);
 		SQLiteDatabase db = mOpenHelper.getWritableDatabase();
+		String segment;
 
 		switch (match) {
 		case CONTACTS:
 			count = db.update(TABLE_ROSTER, values, where, whereArgs);
 			break;
 		case CONTACT_ID:
-			String segment = url.getPathSegments().get(1);
+			segment = url.getPathSegments().get(1);
 			rowId = Long.parseLong(segment);
 			count = db.update(TABLE_ROSTER, values, "_id=" + rowId, whereArgs);
+			break;
+		case ROOMS:
+			count = db.update(TABLE_ROOMS, values, where, whereArgs);
+			break;
+		case ROOM_ID:
+			segment = url.getPathSegments().get(1);
+			rowId = Long.parseLong(segment);
+			count = db.update(TABLE_ROSTER, values, "_id=" + rowId, whereArgs);
+			break;
+		case PARTICIPANTS:
+			count = db.update(TABLE_PARTICIPANTS, values, where, whereArgs);
+			break;
+		case PARTICIPANT_ID:
+			segment = url.getPathSegments().get(1);
+			rowId = Long.parseLong(segment);
+			count = db.update(TABLE_PARTICIPANTS, values, "_id=" + rowId, whereArgs);
+			break;
+		case KEYS:
+			count = db.update(TABLE_KEYS, values, where, whereArgs);
+			break;
+		case KEYS_ID:
+			segment = url.getPathSegments().get(1);
+			rowId = Long.parseLong(segment);
+			count = db.update(TABLE_KEYS, values, "_id=" + rowId, whereArgs);
 			break;
 		default:
 			throw new UnsupportedOperationException("Cannot update URL: " + url);
@@ -248,7 +401,7 @@ public class RosterProvider extends ContentProvider {
 	private static class RosterDatabaseHelper extends SQLiteOpenHelper {
 
 		private static final String DATABASE_NAME = "roster.db";
-		private static final int DATABASE_VERSION = 4;
+		private static final int DATABASE_VERSION = 1;
 
 		public RosterDatabaseHelper(Context context) {
 			super(context, DATABASE_NAME, null, DATABASE_VERSION);
@@ -272,6 +425,46 @@ public class RosterProvider extends ContentProvider {
 				        + " (" + RosterConstants.ALIAS + ")");
 			db.execSQL("CREATE INDEX idx_roster_status ON " + TABLE_ROSTER
 				        + " (" + RosterConstants.STATUS_MODE + ")");
+			createRoomsTable(db);
+			createParticipantsTable(db);
+			createKeysTable(db);
+		}
+		
+		private void createRoomsTable(SQLiteDatabase db) {
+			db.execSQL("CREATE TABLE " + TABLE_ROOMS + " ("
+					+ RosterConstants._ID
+					+ " INTEGER PRIMARY KEY AUTOINCREMENT, "
+					+ RoomsConstants.ID + " TEXT UNIQUE ON CONFLICT REPLACE, "
+					+ RoomsConstants.NAME+ " TEXT, " 
+					+ RoomsConstants.CREATED + " LONG, "
+					+ RoomsConstants.OWNER + " TEXT, "
+					+ RoomsConstants.TOPIC + " TEXT, "
+					+ RoomsConstants.STATUS + " INTEGER, "
+					+ RoomsConstants.LOGGER + " TEXT);");
+			db.execSQL("CREATE INDEX idx_rooms_id ON " + TABLE_ROOMS
+				        + " (" + RoomsConstants.ID + ")");
+		}
+
+		private void createParticipantsTable(SQLiteDatabase db) {
+			db.execSQL("CREATE TABLE " + TABLE_PARTICIPANTS + " ("
+					+ ParticipantConstants._ID
+					+ " INTEGER PRIMARY KEY AUTOINCREMENT, "
+					+ ParticipantConstants.JID + " TEXT, "
+					+ ParticipantConstants.ROOM + " TEXT, " 
+					+ ParticipantConstants.NAME + " TEXT);");
+			db.execSQL("CREATE INDEX idx_room_id ON " + TABLE_PARTICIPANTS
+				        + " (" + ParticipantConstants.ROOM + ")");
+		}
+
+		private void createKeysTable(SQLiteDatabase db) {
+			db.execSQL("CREATE TABLE " + TABLE_KEYS + " ("
+					+ KeysConstants._ID
+					+ " INTEGER PRIMARY KEY AUTOINCREMENT, "
+					+ KeysConstants.JID + " TEXT, "
+					+ KeysConstants.PUBLIC_KEY + " TEXT, " 
+					+ KeysConstants.PRIVATE_KEY + " TEXT);");
+			db.execSQL("CREATE INDEX idx_jid_id ON " + TABLE_PARTICIPANTS
+				        + " (" + KeysConstants.JID + ")");
 		}
 
 		@Override
@@ -281,6 +474,9 @@ public class RosterProvider extends ContentProvider {
 			default:
 				db.execSQL("DROP TABLE IF EXISTS " + TABLE_GROUPS);
 				db.execSQL("DROP TABLE IF EXISTS " + TABLE_ROSTER);
+				db.execSQL("DROP TABLE IF EXISTS " + TABLE_ROOMS);
+				db.execSQL("DROP TABLE IF EXISTS " + TABLE_PARTICIPANTS);
+				db.execSQL("DROP TABLE IF EXISTS " + TABLE_KEYS);
 				onCreate(db);
 			}
 		}
@@ -314,4 +510,77 @@ public class RosterProvider extends ContentProvider {
 
 	}
 
+	public static final class RoomsConstants implements BaseColumns {
+
+		private RoomsConstants() {
+		}
+
+		public static final String CONTENT_TYPE = "vnd.android.cursor.dir/vnd.yaxim.rooms";
+		public static final String CONTENT_ITEM_TYPE = "vnd.android.cursor.item/vnd.yaxim.rooms";
+
+		public static final String ID = "node_id";
+		public static final String NAME = "name";
+		public static final String CREATED = "created";
+		public static final String OWNER = "owner";
+		public static final String TOPIC = "topic";
+		public static final String LOGGER = "logger";
+		public static final String STATUS = "status";
+
+		public static final String DEFAULT_SORT_ORDER = CREATED + " DESC, " + NAME + " COLLATE NOCASE";
+
+		public static ArrayList<String> getRequiredColumns() {
+			ArrayList<String> tmpList = new ArrayList<String>();
+			tmpList.add(ID);
+			tmpList.add(NAME);
+			tmpList.add(CREATED);
+			tmpList.add(OWNER);
+			tmpList.add(TOPIC);
+			tmpList.add(LOGGER);
+			tmpList.add(STATUS);
+			return tmpList;
+		}
+
+	}
+
+	public static final class ParticipantConstants implements BaseColumns {
+
+		private ParticipantConstants() {
+		}
+
+		public static final String CONTENT_TYPE = "vnd.android.cursor.dir/vnd.yaxim.participants";
+		public static final String CONTENT_ITEM_TYPE = "vnd.android.cursor.item/vnd.yaxim.participants";
+
+		public static final String JID = "jid";
+		public static final String ROOM = "room_id";
+		public static final String NAME = "name";
+
+		public static ArrayList<String> getRequiredColumns() {
+			ArrayList<String> tmpList = new ArrayList<String>();
+			tmpList.add(JID);
+			tmpList.add(ROOM);
+			tmpList.add(NAME);
+			return tmpList;
+		}
+	}
+
+	public static final class KeysConstants implements BaseColumns {
+
+		private KeysConstants() {
+		}
+
+		public static final String CONTENT_TYPE = "vnd.android.cursor.dir/vnd.yaxim.participants";
+		public static final String CONTENT_ITEM_TYPE = "vnd.android.cursor.item/vnd.yaxim.participants";
+
+		public static final String JID = "jid";
+		public static final String PUBLIC_KEY = "public_key";
+		public static final String PRIVATE_KEY = "private_key";
+
+		public static ArrayList<String> getRequiredColumns() {
+			ArrayList<String> tmpList = new ArrayList<String>();
+			tmpList.add(JID);
+			tmpList.add(PUBLIC_KEY);
+			tmpList.add(PRIVATE_KEY);
+			return tmpList;
+		}
+	}
 }
