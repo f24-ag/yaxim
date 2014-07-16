@@ -23,9 +23,14 @@
 		android:alphabeticShortcut="p"
 		android:icon="@android:drawable/ic_menu_preferences" />
 
+	<item android:id="@+id/menu_register" android:title="@string/StartupDialog_create_new"
+		android:icon="@android:drawable/ic_menu_agenda" />
+	
 	<item android:id="@+id/menu_about" android:title="@string/Menu_about"
 		android:alphabeticShortcut="y"
-		android:icon="@drawable/about" /><item android:id="@+id/menu_exit" android:title="@string/Global_Exit"
+		android:icon="@drawable/about" />
+	
+	<item android:id="@+id/menu_exit" android:title="@string/Global_Exit"
 		android:alphabeticShortcut="x"
 		android:icon="@android:drawable/ic_menu_close_clear_cancel" />
 	

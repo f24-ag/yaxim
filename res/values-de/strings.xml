@@ -241,4 +241,6 @@
 	<string name="rooms.delete">Raum entfernen</string>
 	<string name="rooms.participants">Teilnehmer auswählen</string>
 	<string name="rooms.title">Titel des Raumes</string>
+	<string name="rooms.phoneNumber">Geben Sie Ihre Rufnummer ein</string>
+	<string name="rooms.confirmationCode">Geben Sie den SMS-Bestätigungscode ein</string>
 </resources>

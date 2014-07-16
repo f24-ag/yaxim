@@ -1,16 +1,13 @@
 package org.yaxim.androidclient.util;
 
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import gnu.inet.encoding.Stringprep;
+import gnu.inet.encoding.StringprepException;
 
 import org.yaxim.androidclient.exceptions.YaximXMPPAdressMalformedException;
 
 import android.content.Context;
 import android.text.Editable;
 import android.util.TypedValue;
-
-import gnu.inet.encoding.Stringprep;
-import gnu.inet.encoding.StringprepException;
 
 public class XMPPHelper {
 

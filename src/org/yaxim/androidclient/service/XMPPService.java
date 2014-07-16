@@ -1,16 +1,23 @@
 package org.yaxim.androidclient.service;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.yaxim.androidclient.IXMPPRosterCallback;
 import org.yaxim.androidclient.MainWindow;
 import org.yaxim.androidclient.R;
+import org.yaxim.androidclient.crypto.KeyRetriever;
 import org.yaxim.androidclient.data.RosterProvider;
+import org.yaxim.androidclient.data.RosterProvider.RoomsConstants;
 import org.yaxim.androidclient.exceptions.YaximXMPPException;
 import org.yaxim.androidclient.util.ConnectionState;
 import org.yaxim.androidclient.util.StatusMode;
 
+import de.f24.rooms.messages.OpenRoomRequest;
+import de.f24.rooms.messages.Registration;
+import de.f24.rooms.messages.RegistrationRequest;
 import android.app.AlarmManager;
 import android.app.Notification;
 import android.app.PendingIntent;
@@ -18,6 +25,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.database.Cursor;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Handler;
@@ -186,10 +194,27 @@ public class XMPPService extends GenericService {
 			public void openRoom(String parentRoomID, String topic, String[] participants)
 					throws RemoteException {
 				if (mSmackable != null) {
-					mSmackable.openRoom(parentRoomID, topic, participants);
+					mSmackable.sendControlMessage(createOpenRoomRequest(parentRoomID, topic, participants));
 				}
 			}
 		};
+	}
+	
+	private OpenRoomRequest createOpenRoomRequest(String parentRoomID, String topic, String[] participants) {
+		String roomName = topic;
+		if (parentRoomID != null) {
+			Cursor c = getContentResolver().query(RosterProvider.ROOMS_URI, new String[] { RoomsConstants.NAME }, 
+					RoomsConstants.ID + " = ?", new String[] {parentRoomID}, null);
+			if (c.moveToNext()) {
+				roomName = c.getString(0) + "/" + roomName;
+			}
+		}
+		OpenRoomRequest request = new OpenRoomRequest();
+		request.setRoomName(roomName);
+		request.setParticipants(new ArrayList<String>());
+		request.getParticipants().addAll(Arrays.asList(participants));
+		request.getParticipants().add(mConfig.jabberID);
+		return request;
 	}
 
 	private void createServiceRosterStub() {
@@ -290,7 +315,24 @@ public class XMPPService extends GenericService {
 			@Override
 			public void openRoom(String parentRoomID, String topic,
 					String[] participants) throws RemoteException {
-				mSmackable.openRoom(parentRoomID, topic, participants);
+				mSmackable.sendControlMessage(createOpenRoomRequest(parentRoomID, topic, participants));
+			}
+
+			@Override
+			public void sendRegistrationMessage1(String phoneNumber)
+					throws RemoteException {
+				RegistrationRequest request = new RegistrationRequest();
+				request.setPhoneNumber(phoneNumber);
+				mSmackable.sendControlMessage(request);
+			}
+
+			@Override
+			public void sendRegistrationMessage2(String code, String publicKey)
+					throws RemoteException {
+				Registration registration = new Registration();
+				registration.setConfirmationCode(code);
+				registration.setPublicKey(publicKey);
+				mSmackable.sendControlMessage(registration);
 			}
 		};
 	}
@@ -459,9 +501,9 @@ public class XMPPService extends GenericService {
 		}
 
 		mSmackable.registerCallback(new XMPPServiceCallback() {
-			public void newMessage(String from, String message, boolean silent_notification) {
+			public void newMessage(String from, String roomID, String message, boolean silent_notification) {
 				logInfo("notification: " + from);
-				notifyClient(from, mSmackable.getNameForJID(from), message, !mIsBoundTo.contains(from), silent_notification, false);
+				notifyClient(from, mSmackable.getNameForJID(from), roomID, message, !mIsBoundTo.contains(from) && !mIsBoundTo.contains(roomID), silent_notification, false);
 			}
 
 			public void messageError(final String from, final String error, final boolean silent_notification) {
@@ -469,7 +511,7 @@ public class XMPPService extends GenericService {
 				mMainHandler.post(new Runnable() {
 					public void run() {
 						// work around Toast fallback for errors
-						notifyClient(from, mSmackable.getNameForJID(from), error,
+						notifyClient(from, mSmackable.getNameForJID(from), null, error,
 							!mIsBoundTo.contains(from), silent_notification, true);
 					}});
 				}

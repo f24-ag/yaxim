@@ -3,6 +3,8 @@ package org.yaxim.androidclient.service;
 import org.yaxim.androidclient.exceptions.YaximXMPPException;
 import org.yaxim.androidclient.util.ConnectionState;
 
+import de.f24.rooms.messages.RoomsMessage;
+
 
 public interface Smackable {
 	boolean doConnect(boolean create_account) throws YaximXMPPException;
@@ -29,5 +31,5 @@ public interface Smackable {
 	
 	String getNameForJID(String jid);
 	void sendFile(String jid, String fileName);
-	void openRoom(String parentRoomID, String topic, String[] participants);
+	void sendControlMessage(RoomsMessage request);
 }

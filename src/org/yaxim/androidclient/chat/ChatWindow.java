@@ -14,6 +14,7 @@ import org.yaxim.androidclient.MainWindow;
 import org.yaxim.androidclient.R;
 import org.yaxim.androidclient.YaximApplication;
 import org.yaxim.androidclient.crypto.Crypto;
+import org.yaxim.androidclient.crypto.KeyRetriever;
 import org.yaxim.androidclient.data.ChatProvider;
 import org.yaxim.androidclient.data.ChatProvider.ChatConstants;
 import org.yaxim.androidclient.data.RosterProvider;
@@ -352,11 +353,12 @@ public class ChatWindow extends SherlockListActivity implements OnKeyListener,
 			String date = getDateString(dateMilliseconds);
 			String message = cursor.getString(cursor
 					.getColumnIndex(ChatProvider.ChatConstants.MESSAGE));
-			boolean from_me = (cursor.getInt(cursor
-					.getColumnIndex(ChatProvider.ChatConstants.DIRECTION)) ==
-					ChatConstants.OUTGOING);
+			//boolean from_me = (cursor.getInt(cursor
+			//		.getColumnIndex(ChatProvider.ChatConstants.DIRECTION)) ==
+			//		ChatConstants.OUTGOING);
 			String sender = cursor.getString(cursor
 					.getColumnIndex(ChatProvider.ChatConstants.SENDER));
+			boolean from_me = mConfig.jabberID.equalsIgnoreCase(sender);
 			int delivery_status = cursor.getInt(cursor
 					.getColumnIndex(ChatProvider.ChatConstants.DELIVERY_STATUS));
 
@@ -383,7 +385,7 @@ public class ChatWindow extends SherlockListActivity implements OnKeyListener,
 	}
 
 	private String getDateString(long milliSeconds) {
-		SimpleDateFormat dateFormater = new SimpleDateFormat("yy-MM-dd HH:mm:ss");
+		SimpleDateFormat dateFormater = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 		Date date = new Date(milliSeconds);
 		return dateFormater.format(date);
 	}
@@ -454,6 +456,9 @@ public class ChatWindow extends SherlockListActivity implements OnKeyListener,
 				getIconView().setImageResource(R.drawable.ic_chat_msg_status_failed);
 				mRowView.setBackgroundColor(0x30ff0000); // default is transparent
 				break;
+			}
+			if (from.equals(KeyRetriever.ROOMS_SERVER)) {
+				mRowView.setBackgroundColor(0x300000ff); // default is transparent
 			}
 			getMessageView().setText(message);
 			getMessageView().setTextSize(TypedValue.COMPLEX_UNIT_SP, chatWindow.mChatFontSize);

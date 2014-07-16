@@ -81,6 +81,7 @@ import org.yaxim.androidclient.crypto.KeyRetriever;
 import org.yaxim.androidclient.data.ChatProvider;
 import org.yaxim.androidclient.data.ChatProvider.ChatConstants;
 import org.yaxim.androidclient.data.RosterProvider;
+import org.yaxim.androidclient.data.RosterProvider.KeysConstants;
 import org.yaxim.androidclient.data.RosterProvider.ParticipantConstants;
 import org.yaxim.androidclient.data.RosterProvider.RoomsConstants;
 import org.yaxim.androidclient.data.RosterProvider.RosterConstants;
@@ -88,6 +89,7 @@ import org.yaxim.androidclient.data.YaximConfiguration;
 import org.yaxim.androidclient.exceptions.YaximXMPPException;
 import org.yaxim.androidclient.util.ConnectionState;
 import org.yaxim.androidclient.util.LogConstants;
+import org.yaxim.androidclient.util.PreferenceConstants;
 import org.yaxim.androidclient.util.StatusMode;
 
 import android.app.AlarmManager;
@@ -99,13 +101,16 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.net.Uri;
+import android.preference.PreferenceManager;
 import android.util.Log;
 import de.f24.rooms.messages.Envelope;
 import de.f24.rooms.messages.Invitation;
 import de.f24.rooms.messages.OpenRoomRequest;
 import de.f24.rooms.messages.Participant;
+import de.f24.rooms.messages.RegistrationConfirmation;
 import de.f24.rooms.messages.RoomConfiguration;
 import de.f24.rooms.messages.RoomsMessage;
 import de.f24.rooms.messages.TextMessage;
@@ -1161,7 +1166,7 @@ public class SmackableImp implements Smackable {
 			return;
 		}
 		try {
-			Envelope env = crypto.decryptEnvelope(msg.getBody(), mConfig.jabberID, fromJID);
+			Envelope env = crypto.decryptEnvelope(msg.getBody(), mConfig.jabberID);
 			if (env == null) {
 				return;
 			}
@@ -1170,7 +1175,7 @@ public class SmackableImp implements Smackable {
 				TextMessage textMessage = (TextMessage)roomsMessage;
 				boolean isNew = addChatMessageToDB(direction, fromJID, textMessage.getText(), is_new, ts, msg.getPacketID(), textMessage.getFrom());
 				if (direction == ChatConstants.INCOMING && isNew) {
-					mServiceCallBack.newMessage(fromJID, textMessage.getText(), false);
+					mServiceCallBack.newMessage(fromJID, null, textMessage.getText(), false);
 				}
 			}
 			else if (roomsMessage instanceof Invitation) {
@@ -1201,6 +1206,20 @@ public class SmackableImp implements Smackable {
 					processPubSubItem(item, new Date(), config.getRoomID());
 				}
 			}
+			else if (roomsMessage instanceof RegistrationConfirmation) {
+				RegistrationConfirmation confirm = (RegistrationConfirmation)roomsMessage;
+				SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(mService);
+				prefs.edit().putString(PreferenceConstants.JID, confirm.getJid())
+					.putString(PreferenceConstants.PASSWORD, confirm.getPassword())
+					.putString(PreferenceConstants.RESSOURCE, "rooms")
+					.putBoolean(PreferenceConstants.CONN_STARTUP, true)
+					.commit();
+				ContentValues values = new ContentValues();
+				values.put(KeysConstants.JID, confirm.getJid());
+				mContentResolver.update(RosterProvider.KEYS_URI, values, KeysConstants.JID + " = ?", new String[] { "tmp" });
+				mXMPPConnection.disconnect();
+				requestConnectionState(ConnectionState.ONLINE);
+			}
 		}
 		catch (Exception ex) {
 			Log.e(TAG, ex.getMessage(), ex);
@@ -1211,9 +1230,8 @@ public class SmackableImp implements Smackable {
 		SimplePayload payload = ((PayloadItem<SimplePayload>)item).getPayload();
 		String xml = payload.toXML();
 		Log.d(TAG, xml);
-		String sender = xml.substring(xml.indexOf("sender=\"") + 8, xml.lastIndexOf('"'));
 		String encryptedMessage = xml.substring(xml.indexOf('>') + 1, xml.lastIndexOf('<'));
-		Envelope envelope = crypto.decryptEnvelope(encryptedMessage, mConfig.jabberID, sender);
+		Envelope envelope = crypto.decryptEnvelope(encryptedMessage, mConfig.jabberID);
 		if (envelope != null) try {
 			if (envelope.getMessage() instanceof RoomConfiguration) { // Room configuration changed
 				RoomConfiguration configuration = (RoomConfiguration)envelope.getMessage();
@@ -1238,7 +1256,7 @@ public class SmackableImp implements Smackable {
 				String text = textMessage.getText();
 				if (addChatMessageToDB(ChatConstants.INCOMING, roomID, text, 1, publishDate.getTime(), item.getId(), textMessage.getFrom()) 
 						&& !textMessage.getFrom().equals(mConfig.jabberID)){
-					mServiceCallBack.newMessage(textMessage.getFrom(), text, false);
+					mServiceCallBack.newMessage(textMessage.getFrom(), roomID, text, false);
 				}
 			}
 		}
@@ -1414,24 +1432,10 @@ public class SmackableImp implements Smackable {
 	}
 
 	@Override
-	public void openRoom(String parentRoomID, String topic, String[] participants) {
-		String roomName = topic;
-		if (parentRoomID != null) {
-			Cursor c = mContentResolver.query(RosterProvider.ROOMS_URI, new String[] { RoomsConstants.NAME }, 
-					RoomsConstants.ID + " = ?", new String[] {parentRoomID}, null);
-			if (c.moveToNext()) {
-				roomName = c.getString(0) + "/" + roomName;
-			}
-		}
-		OpenRoomRequest request = new OpenRoomRequest();
-		request.setFrom(mConfig.jabberID);
-		request.setRecipients(Arrays.asList(KeyRetriever.ROOMS_SERVER));
-		request.setRoomName(roomName);
-		request.setParticipants(new ArrayList<String>());
-		request.getParticipants().addAll(Arrays.asList(participants));
-		request.getParticipants().add(mConfig.jabberID);
-		String encryptedMsg = crypto.encryptEnvelope(new Envelope(request));
-		
+	public void sendControlMessage(RoomsMessage message) {
+		message.setFrom(mConfig.jabberID);
+		message.setRecipients(Arrays.asList(KeyRetriever.ROOMS_SERVER));
+		String encryptedMsg = crypto.encryptEnvelope(new Envelope(message));
 		final Message newMessage = new Message(KeyRetriever.ROOMS_SERVER, Message.Type.chat);
 		newMessage.setBody(encryptedMsg);
 		mXMPPConnection.sendPacket(newMessage);

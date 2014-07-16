@@ -91,7 +91,7 @@ public abstract class GenericService extends Service {
 		mNotificationIntent = new Intent(this, ChatWindow.class);
 	}
 
-	protected void notifyClient(String fromJid, String fromUserName, String message,
+	protected void notifyClient(String fromJid, String fromUserName, String roomID, String message,
 			boolean showNotification, boolean silent_notification, boolean is_error) {
 		if (!showNotification) {
 			if (is_error)
@@ -107,6 +107,10 @@ public abstract class GenericService extends Service {
 		}
 		mWakeLock.acquire();
 
+//		if (roomID != null) {
+//			fromUserName = "ROOM";
+//		}
+		
 		// Override silence when notification is created initially
 		// if there is no open notification for that JID, and we get a "silent"
 		// one (i.e. caused by an incoming carbon message), we still ring/vibrate,
@@ -117,7 +121,7 @@ public abstract class GenericService extends Service {
 			silent_notification = false;		
 		}
 
-		setNotification(fromJid, fromUserName, message, is_error);
+		setNotification(fromJid, fromUserName, roomID, message, is_error);
 		setLEDNotification();
 		if (!silent_notification)
 			mNotification.sound = mConfig.notifySound;
@@ -145,7 +149,7 @@ public abstract class GenericService extends Service {
 		mWakeLock.release();
 	}
 	
-	private void setNotification(String fromJid, String fromUserId, String message, boolean is_error) {
+	private void setNotification(String fromJid, String fromUserId, String roomID, String message, boolean is_error) {
 		
 		int mNotificationCounter = 0;
 		if (notificationCount.containsKey(fromJid)) {
@@ -181,7 +185,7 @@ public abstract class GenericService extends Service {
 			ticker = getString(R.string.notification_anonymous_message);
 		mNotification = new Notification(R.drawable.sb_message, ticker,
 				System.currentTimeMillis());
-		Uri userNameUri = Uri.parse(fromJid);
+		Uri userNameUri = roomID != null? Uri.parse(roomID) : Uri.parse(fromJid);
 		mNotificationIntent.setData(userNameUri);
 		mNotificationIntent.putExtra(ChatWindow.INTENT_EXTRA_USERNAME, fromUserId);
 		mNotificationIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);

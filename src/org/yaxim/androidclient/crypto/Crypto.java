@@ -57,6 +57,7 @@ public class Crypto {
 		byte[] nonce = random.randomBytes(SodiumConstants.NONCE_BYTES);
 		out.write(nonce);
 		
+		long m = new Date().getTime();
 		Box myBox = new Box(otherKey, myKeys.getPrivateKey());
 		byte[] buffer = new byte[1048576];
 		int count;
@@ -64,6 +65,7 @@ public class Crypto {
 			byte[] encrypted = myBox.encrypt(nonce, Util.slice(buffer, 0, count)); 
 			out.write(encrypted);
 		}
+		Log.i("Crypto", "Dateiverschlüsselung hat " + (new Date().getTime() - m) + " ms gedauert");
 	}
 
 	public String decrypt(String encData, String myJabberID, String otherJabberID) throws Exception {
@@ -85,16 +87,17 @@ public class Crypto {
 		byte[] nonce = new byte[SodiumConstants.NONCE_BYTES];
 		in.read(nonce);
 		
+		long m = new Date().getTime();
 		Box myBox = new Box(otherKey, myKeys.getPrivateKey());
 		byte[] buffer = new byte[1048576 + SodiumConstants.BOXZERO_BYTES];
 		int count;
 		while ((count = in.read(buffer)) > 0) {
 			out.write(myBox.decrypt(nonce, Util.slice(buffer, 0, count)));
 		}
+		Log.i("Crypto", "Dateientschlüsselung hat " + (new Date().getTime() - m) + " ms gedauert");
 	}
 
 	public String encryptEnvelope(Envelope envelope) {
-		long m = new Date().getTime();
 		try {
 	        Random random = new Random(); 
 	        Hex hex = new Hex();
@@ -115,6 +118,11 @@ public class Crypto {
 			out.append('\n');
 			
 			KeyPair myKeys = keyRetriever.loadKeys(envelope.getMessage().getFrom());
+			out.append(hex.encode(myKeys.getPublicKey().toBytes()));
+			out.append('\n');
+			
+			//PublicKey roomsKey = keyRetriever.loadPublicKey(KeyRetriever.ROOMS_SERVER);
+			long m = new Date().getTime();
 			for (String recipient : envelope.getMessage().getRecipients()) {
 				PublicKey otherKey = keyRetriever.loadPublicKey(recipient);
 				Box box = new Box(otherKey, myKeys.getPrivateKey());
@@ -124,9 +132,8 @@ public class Crypto {
 			} 
 			
 			// Bloat begin
-//			PublicKey roomsKey = loadPublicKey(context, ROOMS_SERVER);
 //			Box box = new Box(roomsKey, myKeys.getPrivateKey());
-//			for (int i = 0; i < 100; i++ ) {
+//			for (int i = 0; i < 996; i++ ) {
 //		        byte[] ciphertext = box.encrypt(nonce, symmetricKey);
 //				out.append(hex.encode(ciphertext));
 //				out.append('\n');
@@ -141,21 +148,21 @@ public class Crypto {
 		}
 	}
 	
-	public Envelope decryptEnvelope(String encryptedMessage, String myJID, String senderJID) {
+	public Envelope decryptEnvelope(String encryptedMessage, String myJID) {
 		String[] parts = encryptedMessage.split("\n");
 		try {
 	        Hex hex = new Hex();
 			KeyPair myKeys = keyRetriever.loadKeys(myJID);
-			PublicKey otherKey = keyRetriever.loadPublicKey(senderJID);
 
 			long m = new Date().getTime();
 	        byte[] nonce = hex.decode(parts[0]);
+	        PublicKey otherKey = new PublicKey(hex.decode(parts[2]));
 			Box box = new Box(otherKey, myKeys.getPrivateKey());
 			byte[] symmetricKey = null;
-			for (int i = 2; i < parts.length; i++) {
+			for (int i = 3; i < parts.length; i++) {
 				try {
 					symmetricKey = box.decrypt(nonce, hex.decode(parts[i]));
-					break;
+					// break;
 				}
 				catch (Exception ex) {
 					// Do nothing...
@@ -164,10 +171,10 @@ public class Crypto {
 			if (symmetricKey == null) {
 				throw new InvalidKeyException();
 			}
+			Log.i("Crypto", "Entschlüsselung hat " + (new Date().getTime() - m) + " ms gedauert");
 			SecretBox secretBox = new SecretBox(symmetricKey);
 			byte[] decryptedData = secretBox.decrypt(nonce, hex.decode(parts[1]));
 			String message = new String(decryptedData, "UTF-8"); 
-			Log.i("Crypto", "Entschlüsselung hat " + (new Date().getTime() - m) + " ms gedauert");
 			
 			Persister persister = new Persister();
 			Envelope env = persister.read(Envelope.class, message);

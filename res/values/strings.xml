@@ -300,4 +300,6 @@
 	<string name="rooms.delete">Remove</string>
 	<string name="rooms.participants">Select participants</string>
 	<string name="rooms.title">Room topic</string>
+	<string name="rooms.phoneNumber">Enter your phone number</string>
+	<string name="rooms.confirmationCode">Enter confirmation code from SMS</string>
 </resources>

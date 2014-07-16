@@ -12,11 +12,19 @@ public class Participant {
 
 	@Element
 	private String publicKey;
+	
+	public Participant() {
+	}
+	
+	public Participant(String jid, String name, String publicKey) {
+		this.jid = jid;
+		this.name = name;
+		this.publicKey = publicKey;
+	}
 
 	@Override
 	public String toString() {
-		return "Participant [jid=" + jid + ", name=" + name + ", publicKey="
-				+ publicKey + "]";
+		return name + " [" + jid + "]";
 	}
 
 	public String getJid() {

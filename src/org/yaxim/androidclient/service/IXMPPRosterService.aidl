@@ -24,6 +24,8 @@ interface IXMPPRosterService {
 	void renameRosterItem(String user, String newName);
 	void moveRosterItemToGroup(String user, String group);
 	void openRoom(String parentRoomID, String topic, in String[] participants);
+	void sendRegistrationMessage1(String message);
+	void sendRegistrationMessage2(String code, String publicKey);
 	
 	/* callback methods */
 	

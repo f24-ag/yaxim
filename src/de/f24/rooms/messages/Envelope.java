@@ -11,6 +11,9 @@ public class Envelope {
 		@Element(name="invitation", type=Invitation.class),
 		@Element(name="roomConfiguration", type=RoomConfiguration.class),
 		@Element(name="textMessage", type=TextMessage.class),
+		@Element(name="registrationRequest", type=RegistrationRequest.class),
+		@Element(name="registration", type=Registration.class),
+		@Element(name="registrationConfirmation", type=RegistrationConfirmation.class),
 	})
 	private RoomsMessage message;
 

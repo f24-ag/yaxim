@@ -45,13 +45,18 @@ public class DBKeyRetriever implements KeyRetriever {
 	@Override
 	public KeyPair loadKeys(String jid) throws Exception {
 		KeyPair kp = null;
-		Cursor c = mContentResolver.query(RosterProvider.KEYS_URI, 
-				new String[] { KeysConstants.PUBLIC_KEY, KeysConstants.PRIVATE_KEY }, 
-				KeysConstants.JID + " = ?", new String[] { jid }, null);
-		if (c.moveToNext()) {
-			kp = new KeyPair(hex.decode(c.getString(1)), hex.decode(c.getString(0)));
+		if (KeyRetriever.NEW_USER.equals(jid)) {
+			kp = new KeyPair(NEW_USER_PRIVATE_KEY, NEW_USER_PUBLIC_KEY, hex);
 		}
-		c.close();
+		else {
+			Cursor c = mContentResolver.query(RosterProvider.KEYS_URI, 
+					new String[] { KeysConstants.PUBLIC_KEY, KeysConstants.PRIVATE_KEY }, 
+					KeysConstants.JID + " = ?", new String[] { jid }, null);
+			if (c.moveToNext()) {
+				kp = new KeyPair(hex.decode(c.getString(1)), hex.decode(c.getString(0)));
+			}
+			c.close();
+		}
 		return kp;
 	}
 
@@ -59,7 +64,10 @@ public class DBKeyRetriever implements KeyRetriever {
 	public PublicKey loadPublicKey(String jid) throws Exception {
 		PublicKey pk = null;
 		if (KeyRetriever.ROOMS_SERVER.equals(jid)) {
-			return new PublicKey(hex.decode(KeyRetriever.ROOMS_KEY));
+			return new PublicKey(hex.decode(KeyRetriever.ROOMS_PUBLIC_KEY));
+		}
+		else if (KeyRetriever.NEW_USER.equals(jid)) {
+			return new PublicKey(hex.decode(KeyRetriever.NEW_USER_PUBLIC_KEY));
 		}
 		else {
 			Cursor c = mContentResolver.query(RosterProvider.KEYS_URI, 

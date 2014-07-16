@@ -62,7 +62,7 @@ public class FileKeyRetriever implements KeyRetriever {
 	public PublicKey loadPublicKey(String jid) throws Exception {
         Hex hex = new Hex();
 		if (KeyRetriever.ROOMS_SERVER.equals(jid)) {
-			return new PublicKey(hex.decode(KeyRetriever.ROOMS_KEY));
+			return new PublicKey(hex.decode(KeyRetriever.ROOMS_PUBLIC_KEY));
 		}
 		else {
 			String publicKeyHex = new String(readFile(new File(context.getFilesDir(), jid + ".public")));

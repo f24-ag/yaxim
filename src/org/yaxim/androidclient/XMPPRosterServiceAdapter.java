@@ -150,4 +150,20 @@ public class XMPPRosterServiceAdapter {
 			e.printStackTrace();
 		}
 	}
+
+	public void sendRegistrationMessage1(String phoneNumber) {
+		try {
+			xmppServiceStub.sendRegistrationMessage1(phoneNumber);
+		} catch (RemoteException e) {
+			e.printStackTrace();
+		}
+	}
+
+	public void sendRegistrationMessage2(String code, String publicKey) {
+		try {
+			xmppServiceStub.sendRegistrationMessage2(code, publicKey);
+		} catch (RemoteException e) {
+			e.printStackTrace();
+		}
+	}
 }

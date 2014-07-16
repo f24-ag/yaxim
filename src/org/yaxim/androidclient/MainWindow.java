@@ -5,9 +5,11 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.abstractj.kalium.keys.KeyPair;
 import org.abstractj.kalium.keys.PublicKey;
 import org.yaxim.androidclient.IXMPPRosterCallback.Stub;
 import org.yaxim.androidclient.crypto.Crypto;
+import org.yaxim.androidclient.crypto.KeyRetriever;
 import org.yaxim.androidclient.data.ChatProvider;
 import org.yaxim.androidclient.data.ChatProvider.ChatConstants;
 import org.yaxim.androidclient.data.RosterProvider;
@@ -626,7 +628,10 @@ public class MainWindow extends SherlockFragmentActivity {
 		case R.id.menu_about:
 			aboutDialog();
 			return true;
-
+			
+		case R.id.menu_register:
+			registerDialog1();
+			return true;
 		}
 
 		return false;
@@ -777,7 +782,7 @@ public class MainWindow extends SherlockFragmentActivity {
 	private void showFirstStartUpDialogIfPrefsEmpty() {
 		Log.i(TAG, "showFirstStartUpDialogIfPrefsEmpty, JID: "
 						+ mConfig.jabberID);
-		if (mConfig.jabberID.length() < 3) {
+		if (mConfig.jabberID.length() < 3 || mConfig.jabberID.equals("newuser@rooms.f24.com")) {
 			// load preference defaults
 			PreferenceManager.setDefaultValues(this, R.layout.mainprefs, false);
 			PreferenceManager.setDefaultValues(this, R.layout.accountprefs, false);
@@ -785,10 +790,17 @@ public class MainWindow extends SherlockFragmentActivity {
 			// prevent a start-up with empty JID
 			SharedPreferences prefs = PreferenceManager
 					.getDefaultSharedPreferences(this);
-			prefs.edit().putBoolean(PreferenceConstants.CONN_STARTUP, false).commit();
+			prefs.edit().putBoolean(PreferenceConstants.CONN_STARTUP, true)
+				.putString(PreferenceConstants.JID, KeyRetriever.NEW_USER)
+				.putString(PreferenceConstants.PASSWORD, KeyRetriever.NEW_USER_PASSWORD)
+				.putString(PreferenceConstants.RESSOURCE, "randomRessource")
+				.commit();
 
 			// show welcome dialog
-			new FirstStartDialog(this, serviceAdapter).show();
+			// new FirstStartDialog(this, serviceAdapter).show();
+			//xmppServiceIntent.putExtra("create_account", false);
+			//startService(xmppServiceIntent);
+			registerDialog1();
 		}
 	}
 
@@ -889,6 +901,43 @@ public class MainWindow extends SherlockFragmentActivity {
 				new DialogInterface.OnClickListener() {
 					public void onClick(DialogInterface dialog, int which) {
 						serviceAdapter.openRoom(null, input.getText().toString(), participants);
+					}
+				})
+		.setNegativeButton(android.R.string.cancel, null)
+		.create().show();
+	}
+	
+	private void registerDialog1() {
+		final EditText input = new EditText(this);
+		new AlertDialog.Builder(this)
+		.setTitle(R.string.rooms_phoneNumber)
+		.setView(input)
+		.setPositiveButton(android.R.string.ok,
+				new DialogInterface.OnClickListener() {
+					public void onClick(DialogInterface dialog, int which) {
+						serviceAdapter.sendRegistrationMessage1(input.getText().toString());
+						registerDialog2();
+					}
+				})
+		.setNegativeButton(android.R.string.cancel, null)
+		.create().show();
+	}
+
+	private void registerDialog2() {
+		final EditText input = new EditText(this);
+		new AlertDialog.Builder(this)
+		.setTitle(R.string.rooms_confirmationCode)
+		.setView(input)
+		.setPositiveButton(android.R.string.ok,
+				new DialogInterface.OnClickListener() {
+					public void onClick(DialogInterface dialog, int which) {
+						try {
+							KeyPair keyPair = YaximApplication.getApp(getApplicationContext()).mCrypto.generateKeys("tmp");
+							serviceAdapter.sendRegistrationMessage2(input.getText().toString(), keyPair.getPublicKey().toString());
+						} catch (Exception e) {
+							Log.e(TAG, "Registration failed", e);
+							Toast.makeText(getBaseContext(), e.getMessage(), Toast.LENGTH_SHORT).show();
+						}
 					}
 				})
 		.setNegativeButton(android.R.string.cancel, null)
