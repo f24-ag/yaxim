@@ -6,8 +6,10 @@ import java.io.FileOutputStream;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.yaxim.androidclient.MainWindow;
@@ -19,6 +21,7 @@ import org.yaxim.androidclient.data.ChatProvider;
 import org.yaxim.androidclient.data.ChatProvider.ChatConstants;
 import org.yaxim.androidclient.data.RosterProvider;
 import org.yaxim.androidclient.data.RosterProvider.ParticipantConstants;
+import org.yaxim.androidclient.data.RosterProvider.RoomsConstants;
 import org.yaxim.androidclient.data.YaximConfiguration;
 import org.yaxim.androidclient.service.IXMPPChatService;
 import org.yaxim.androidclient.service.XMPPService;
@@ -43,7 +46,6 @@ import android.os.IBinder;
 import android.text.ClipboardManager;
 import android.text.Editable;
 import android.text.TextWatcher;
-import android.text.style.LineHeightSpan.WithDensity;
 import android.util.Log;
 import android.util.TypedValue;
 import android.view.ContextMenu;
@@ -66,6 +68,8 @@ import com.actionbarsherlock.app.ActionBar;
 import com.actionbarsherlock.app.SherlockListActivity;
 import com.actionbarsherlock.view.Menu;
 import com.actionbarsherlock.view.Window;
+
+import de.f24.rooms.messages.Participant;
 
 @SuppressWarnings("deprecation") /* recent ClipboardManager only available since API 11 */
 public class ChatWindow extends SherlockListActivity implements OnKeyListener,
@@ -98,6 +102,8 @@ public class ChatWindow extends SherlockListActivity implements OnKeyListener,
 	private XMPPChatServiceAdapter mServiceAdapter;
 	private int mChatFontSize;
 	private YaximConfiguration mConfig;
+	private Map<String, String> participants;
+	
 
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
@@ -130,8 +136,25 @@ public class ChatWindow extends SherlockListActivity implements OnKeyListener,
 			titleUserid = mWithJabberID;
 		}
 
+		if (mWithJabberID.indexOf('@') == -1) { // Room
+			participants = new HashMap<String, String>();
+			Cursor c = getContentResolver().query(RosterProvider.PARTICIPANTS_URI, 
+					ParticipantConstants.getRequiredColumns().toArray(new String[] {}), 
+					ParticipantConstants.ROOM + " = ?", new String[] { mWithJabberID }, null);
+			while (c.moveToNext()) {
+				participants.put(c.getString(c.getColumnIndex(ParticipantConstants.JID)), c.getString(c.getColumnIndex(ParticipantConstants.NAME)));
+			}
+			c.close();
+			
+			c = getContentResolver().query(RosterProvider.ROOMS_URI, new String[] { RoomsConstants.NAME }, 
+					RoomsConstants.ID + " = ?", new String[] { mWithJabberID }, null);
+			if (c.moveToNext()) {
+				titleUserid = c.getString(0);
+			}
+			c.close();
+		}
+		
 		setCustomTitle(titleUserid);
-
 		setChatWindowAdapter();
 	}
 
@@ -464,6 +487,9 @@ public class ChatWindow extends SherlockListActivity implements OnKeyListener,
 			getMessageView().setTextSize(TypedValue.COMPLEX_UNIT_SP, chatWindow.mChatFontSize);
 			getDateView().setTextSize(TypedValue.COMPLEX_UNIT_SP, chatWindow.mChatFontSize*2/3);
 			getFromView().setTextSize(TypedValue.COMPLEX_UNIT_SP, chatWindow.mChatFontSize*2/3);
+			if (participants != null && participants.get(from) != null) {
+				getFromView().setText(participants.get(from));
+			}
 		}
 		
 		TextView getDateView() {

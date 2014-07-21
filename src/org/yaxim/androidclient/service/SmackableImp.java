@@ -108,8 +108,8 @@ import android.preference.PreferenceManager;
 import android.util.Log;
 import de.f24.rooms.messages.Envelope;
 import de.f24.rooms.messages.Invitation;
-import de.f24.rooms.messages.OpenRoomRequest;
 import de.f24.rooms.messages.Participant;
+import de.f24.rooms.messages.PersonalInfo;
 import de.f24.rooms.messages.RegistrationConfirmation;
 import de.f24.rooms.messages.RoomConfiguration;
 import de.f24.rooms.messages.RoomsMessage;
@@ -814,7 +814,7 @@ public class SmackableImp implements Smackable {
 			}
 			textMsg.setRecipients(recipients);
 			String encryptedMsg = crypto.encryptEnvelope(new Envelope(textMsg));
-			String payload = "<body sender=\"" + mConfig.jabberID + "\">" + encryptedMsg + "</body>";
+			String payload = "<body>" + encryptedMsg + "</body>";
 			try {
 				LeafNode roomNode = pubSub.getNode("/f24_rooms/" + toJID);
 				roomNode.send(new PayloadItem<SimplePayload>("msg_" + System.currentTimeMillis(), 
@@ -1219,6 +1219,10 @@ public class SmackableImp implements Smackable {
 				mContentResolver.update(RosterProvider.KEYS_URI, values, KeysConstants.JID + " = ?", new String[] { "tmp" });
 				mXMPPConnection.disconnect();
 				requestConnectionState(ConnectionState.ONLINE);
+				
+				PersonalInfo message = new PersonalInfo();
+				message.setName(prefs.getString(PreferenceConstants.NAME, ""));
+				sendControlMessage(message);
 			}
 		}
 		catch (Exception ex) {
@@ -1438,6 +1442,16 @@ public class SmackableImp implements Smackable {
 		String encryptedMsg = crypto.encryptEnvelope(new Envelope(message));
 		final Message newMessage = new Message(KeyRetriever.ROOMS_SERVER, Message.Type.chat);
 		newMessage.setBody(encryptedMsg);
-		mXMPPConnection.sendPacket(newMessage);
+
+		if (isAuthenticated()) {
+			addChatMessageToDB(ChatConstants.OUTGOING, KeyRetriever.ROOMS_SERVER, encryptedMsg, ChatConstants.DS_SENT_OR_READ,
+				System.currentTimeMillis(), newMessage.getPacketID(), KeyRetriever.ROOMS_SERVER);
+			mXMPPConnection.sendPacket(newMessage);
+		} 
+		else {
+			// send offline -> store to DB
+			addChatMessageToDB(ChatConstants.OUTGOING, KeyRetriever.ROOMS_SERVER, encryptedMsg, ChatConstants.DS_NEW,
+					System.currentTimeMillis(), newMessage.getPacketID(), KeyRetriever.ROOMS_SERVER);
+		}
 	}
 }

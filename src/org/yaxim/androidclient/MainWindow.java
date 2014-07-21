@@ -1,11 +1,12 @@
 package org.yaxim.androidclient;
 
+import java.math.BigInteger;
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.abstractj.kalium.keys.KeyPair;
 import org.abstractj.kalium.keys.PublicKey;
 import org.yaxim.androidclient.IXMPPRosterCallback.Stub;
 import org.yaxim.androidclient.crypto.Crypto;
@@ -50,6 +51,7 @@ import android.os.RemoteException;
 import android.preference.PreferenceManager;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
+import android.text.InputType;
 import android.util.Log;
 import android.util.TypedValue;
 import android.view.LayoutInflater;
@@ -788,18 +790,17 @@ public class MainWindow extends SherlockFragmentActivity {
 			PreferenceManager.setDefaultValues(this, R.layout.accountprefs, false);
 
 			// prevent a start-up with empty JID
+			SecureRandom random = new SecureRandom();
+			String ressource = new BigInteger(64, random).toString(32);
 			SharedPreferences prefs = PreferenceManager
 					.getDefaultSharedPreferences(this);
 			prefs.edit().putBoolean(PreferenceConstants.CONN_STARTUP, true)
 				.putString(PreferenceConstants.JID, KeyRetriever.NEW_USER)
 				.putString(PreferenceConstants.PASSWORD, KeyRetriever.NEW_USER_PASSWORD)
-				.putString(PreferenceConstants.RESSOURCE, "randomRessource")
+				.putString(PreferenceConstants.RESSOURCE, ressource)
 				.commit();
 
 			// show welcome dialog
-			// new FirstStartDialog(this, serviceAdapter).show();
-			//xmppServiceIntent.putExtra("create_account", false);
-			//startService(xmppServiceIntent);
 			registerDialog1();
 		}
 	}
@@ -909,6 +910,7 @@ public class MainWindow extends SherlockFragmentActivity {
 	
 	private void registerDialog1() {
 		final EditText input = new EditText(this);
+		input.setInputType(InputType.TYPE_CLASS_PHONE);
 		new AlertDialog.Builder(this)
 		.setTitle(R.string.rooms_phoneNumber)
 		.setView(input)
@@ -916,28 +918,7 @@ public class MainWindow extends SherlockFragmentActivity {
 				new DialogInterface.OnClickListener() {
 					public void onClick(DialogInterface dialog, int which) {
 						serviceAdapter.sendRegistrationMessage1(input.getText().toString());
-						registerDialog2();
-					}
-				})
-		.setNegativeButton(android.R.string.cancel, null)
-		.create().show();
-	}
-
-	private void registerDialog2() {
-		final EditText input = new EditText(this);
-		new AlertDialog.Builder(this)
-		.setTitle(R.string.rooms_confirmationCode)
-		.setView(input)
-		.setPositiveButton(android.R.string.ok,
-				new DialogInterface.OnClickListener() {
-					public void onClick(DialogInterface dialog, int which) {
-						try {
-							KeyPair keyPair = YaximApplication.getApp(getApplicationContext()).mCrypto.generateKeys("tmp");
-							serviceAdapter.sendRegistrationMessage2(input.getText().toString(), keyPair.getPublicKey().toString());
-						} catch (Exception e) {
-							Log.e(TAG, "Registration failed", e);
-							Toast.makeText(getBaseContext(), e.getMessage(), Toast.LENGTH_SHORT).show();
-						}
+						new FirstStartDialog(MainWindow.this, serviceAdapter).show();
 					}
 				})
 		.setNegativeButton(android.R.string.cancel, null)

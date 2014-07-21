@@ -24,7 +24,7 @@
 	
 	<!-- FirstStartUpDialog -->
 	<string name="StartupDialog_Title">Welcome to Rooms!</string>
-	<string name="StartupDialog_Summary">You need to configure Rooms before you can use it. Please enter your Jabber ID and password.</string>
+	<string name="StartupDialog_Summary">You need to configure Rooms before you can use it. Please enter the code you received per SMS and your personal data.</string>
 	<string name="StartupDialog_pwHint">Enter password</string>
 	<string name="StartupDialog_pwrHint">Repeat password</string>
 	<string name="StartupDialog_Username_title">Jabber ID:</string>
@@ -301,5 +301,6 @@
 	<string name="rooms.participants">Select participants</string>
 	<string name="rooms.title">Room topic</string>
 	<string name="rooms.phoneNumber">Enter your phone number</string>
-	<string name="rooms.confirmationCode">Enter confirmation code from SMS</string>
+	<string name="rooms.confirmationCode">Confirmation code from SMS</string>
+	<string name="rooms.userName">Your name</string>
 </resources>

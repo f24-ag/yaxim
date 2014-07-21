@@ -162,7 +162,7 @@ public class Crypto {
 			for (int i = 3; i < parts.length; i++) {
 				try {
 					symmetricKey = box.decrypt(nonce, hex.decode(parts[i]));
-					// break;
+					break;
 				}
 				catch (Exception ex) {
 					// Do nothing...
