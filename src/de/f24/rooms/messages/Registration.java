@@ -1,28 +1,27 @@
 package de.f24.rooms.messages;
 
-import org.simpleframework.xml.Element;
+import org.json.JSONException;
 
-@Element
 public class Registration extends RoomsMessage {
-	@Element
-	String confirmationCode;
-	
-	@Element
-	String publicKey;
-
-	public String getConfirmationCode() {
-		return confirmationCode;
+	public String getConfirmationCode() throws JSONException {
+		return getBody().getString("pin");
 	}
 
-	public void setConfirmationCode(String confirmationCode) {
-		this.confirmationCode = confirmationCode;
+	public void setConfirmationCode(String confirmationCode)
+			throws JSONException {
+		getBody().put("put", confirmationCode);
 	}
 
-	public String getPublicKey() {
-		return publicKey;
+	public String getPublicKey() throws JSONException {
+		return getBody().getString("public-key");
 	}
 
-	public void setPublicKey(String publicKey) {
-		this.publicKey = publicKey;
+	public void setPublicKey(String publicKey) throws JSONException {
+		getBody().put("public-key", publicKey);
+	}
+
+	@Override
+	public RoomsMessageType getType() {
+		return RoomsMessageType.Registration;
 	}
 }

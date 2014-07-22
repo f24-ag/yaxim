@@ -591,7 +591,7 @@ public class ChatWindow extends SherlockListActivity implements OnKeyListener,
 				try {
 					FileInputStream in = new FileInputStream(selectedFile);
 					FileOutputStream out = new FileOutputStream(selectedFile + ".encrypted");
-					crypto.encrypt(in, out, mConfig.jabberID, mWithJabberID);
+					crypto.encryptStream(in, out, mConfig.jabberID, mWithJabberID);
 					mServiceAdapter.sendFile(mWithJabberID + "/Smack", selectedFile + ".encrypted");
 				}
 				catch (Exception ex) {

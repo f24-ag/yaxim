@@ -1,16 +1,14 @@
 package de.f24.rooms.messages;
 
-import org.simpleframework.xml.Element;
+import org.json.JSONException;
+import org.json.JSONObject;
 
-@Element
+
 public class Participant {
-	@Element
 	private String jid;
 
-	@Element
 	private String name;
 
-	@Element
 	private String publicKey;
 	
 	public Participant() {
@@ -49,5 +47,13 @@ public class Participant {
 
 	public void setPublicKey(String publicKey) {
 		this.publicKey = publicKey;
+	}
+	
+	public JSONObject toObject() throws JSONException {
+		JSONObject obj = new JSONObject();
+		obj.put("jid", jid);
+		obj.put("name", name);
+		obj.put("public-key", publicKey);
+		return obj;
 	}
 }

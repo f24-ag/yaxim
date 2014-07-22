@@ -1,28 +1,27 @@
 package de.f24.rooms.messages;
 
-import org.simpleframework.xml.Element;
+import org.json.JSONException;
 
-@Element
+
 public class RegistrationConfirmation extends RoomsMessage {
-	@Element
-	String jid;
-	
-	@Element
-	String password;
-
-	public String getJid() {
-		return jid;
+	public String getJid() throws JSONException {
+		return getBody().getString("jid");
 	}
 
-	public void setJid(String jid) {
-		this.jid = jid;
+	public void setJid(String jid) throws JSONException {
+		getBody().put("jid", jid);
 	}
 
-	public String getPassword() {
-		return password;
+	public String getPassword() throws JSONException {
+		return getBody().getString("password");
 	}
 
-	public void setPassword(String password) {
-		this.password = password;
+	public void setPassword(String password) throws JSONException {
+		getBody().put("password", password);
+	}
+
+	@Override
+	public RoomsMessageType getType() {
+		return RoomsMessageType.RegistrationConfirmation;
 	}
 }

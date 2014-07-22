@@ -1,17 +1,19 @@
 package de.f24.rooms.messages;
 
-import org.simpleframework.xml.Element;
+import org.json.JSONException;
 
-@Element
+
 public class PersonalInfo extends RoomsMessage {
-	@Element
-	String name;
-
-	public String getName() {
-		return name;
+	public String getName() throws JSONException {
+		return getBody().getString("name");
 	}
 
-	public void setName(String name) {
-		this.name = name;
+	public void setName(String name) throws JSONException {
+		getBody().put("name", name);
+	}
+
+	@Override
+	public RoomsMessageType getType() {
+		return RoomsMessageType.PersonalInfo;
 	}
 }

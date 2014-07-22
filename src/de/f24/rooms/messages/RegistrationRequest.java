@@ -1,17 +1,19 @@
 package de.f24.rooms.messages;
 
-import org.simpleframework.xml.Element;
+import org.json.JSONException;
 
-@Element
+
 public class RegistrationRequest extends RoomsMessage {
-	@Element
-	String phoneNumber;
-
-	public String getPhoneNumber() {
-		return phoneNumber;
+	public String getPhoneNumber() throws JSONException {
+		return getBody().getString("phone");
 	}
 
-	public void setPhoneNumber(String phoneNumber) {
-		this.phoneNumber = phoneNumber;
+	public void setPhoneNumber(String phoneNumber) throws JSONException {
+		getBody().put("phone", phoneNumber);
+	}
+
+	@Override
+	public RoomsMessageType getType() {
+		return RoomsMessageType.RegistrationRequest;
 	}
 }

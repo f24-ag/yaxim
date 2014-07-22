@@ -3,21 +3,19 @@ package org.yaxim.androidclient.service;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.json.JSONException;
 import org.yaxim.androidclient.IXMPPRosterCallback;
 import org.yaxim.androidclient.MainWindow;
 import org.yaxim.androidclient.R;
-import org.yaxim.androidclient.crypto.KeyRetriever;
 import org.yaxim.androidclient.data.RosterProvider;
 import org.yaxim.androidclient.data.RosterProvider.RoomsConstants;
 import org.yaxim.androidclient.exceptions.YaximXMPPException;
 import org.yaxim.androidclient.util.ConnectionState;
 import org.yaxim.androidclient.util.StatusMode;
 
-import de.f24.rooms.messages.OpenRoomRequest;
-import de.f24.rooms.messages.Registration;
-import de.f24.rooms.messages.RegistrationRequest;
 import android.app.AlarmManager;
 import android.app.Notification;
 import android.app.PendingIntent;
@@ -32,6 +30,10 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.os.RemoteCallbackList;
 import android.os.RemoteException;
+import android.util.Log;
+import de.f24.rooms.messages.OpenRoomRequest;
+import de.f24.rooms.messages.Registration;
+import de.f24.rooms.messages.RegistrationRequest;
 
 public class XMPPService extends GenericService {
 
@@ -210,10 +212,16 @@ public class XMPPService extends GenericService {
 			}
 		}
 		OpenRoomRequest request = new OpenRoomRequest();
-		request.setRoomName(roomName);
-		request.setParticipants(new ArrayList<String>());
-		request.getParticipants().addAll(Arrays.asList(participants));
-		request.getParticipants().add(mConfig.jabberID);
+		try {
+			request.setRoomName(roomName);
+			List<String> lstParticipants = new ArrayList<String>();
+			lstParticipants.addAll(Arrays.asList(participants));
+			lstParticipants.add(mConfig.jabberID);
+			request.setParticipants(lstParticipants);
+		}
+		catch (JSONException ex) {
+			Log.e("JSON", ex.getMessage());
+		}
 		return request;
 	}
 
@@ -322,17 +330,27 @@ public class XMPPService extends GenericService {
 			public void sendRegistrationMessage1(String phoneNumber)
 					throws RemoteException {
 				RegistrationRequest request = new RegistrationRequest();
-				request.setPhoneNumber(phoneNumber);
-				mSmackable.sendControlMessage(request);
+				try {
+					request.setPhoneNumber(phoneNumber);
+					mSmackable.sendControlMessage(request);
+				}
+				catch (JSONException ex) {
+					Log.e("JSON", ex.getMessage());
+				}
 			}
 
 			@Override
 			public void sendRegistrationMessage2(String code, String publicKey)
 					throws RemoteException {
 				Registration registration = new Registration();
-				registration.setConfirmationCode(code);
-				registration.setPublicKey(publicKey);
-				mSmackable.sendControlMessage(registration);
+				try {
+					registration.setConfirmationCode(code);
+					registration.setPublicKey(publicKey);
+					mSmackable.sendControlMessage(registration);
+				}
+				catch (JSONException ex) {
+					Log.e("JSON", ex.getMessage());
+				}
 			}
 		};
 	}

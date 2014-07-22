@@ -106,7 +106,6 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.preference.PreferenceManager;
 import android.util.Log;
-import de.f24.rooms.messages.Envelope;
 import de.f24.rooms.messages.Invitation;
 import de.f24.rooms.messages.Participant;
 import de.f24.rooms.messages.PersonalInfo;
@@ -802,52 +801,52 @@ public class SmackableImp implements Smackable {
 	public void sendMessage(String toJID, String message) {
 		final Message newMessage = new Message(toJID, Message.Type.chat);
 		
-		boolean isRoomMessage = toJID.indexOf('@') == -1;
-		TextMessage textMsg = new TextMessage();
-		textMsg.setFrom(mConfig.jabberID);
-		textMsg.setText(message);
-		
-		if (isRoomMessage) {
-			List<String> recipients = new ArrayList<String>();
-			for (Participant p : getRoomParticipants(toJID)) {
-				recipients.add(p.getJid());
-			}
-			textMsg.setRecipients(recipients);
-			String encryptedMsg = crypto.encryptEnvelope(new Envelope(textMsg));
-			String payload = "<body>" + encryptedMsg + "</body>";
-			try {
-				LeafNode roomNode = pubSub.getNode("/f24_rooms/" + toJID);
+		try {
+			boolean isRoomMessage = toJID.indexOf('@') == -1;
+			TextMessage textMsg = new TextMessage();
+			textMsg.setSender(mConfig.jabberID);
+			textMsg.setText(message);
+			
+			if (isRoomMessage) {
+				List<String> recipients = new ArrayList<String>();
+				for (Participant p : getRoomParticipants(toJID)) {
+					recipients.add(p.getJid());
+				}
+				textMsg.setRecipients(recipients);
+				String encryptedMsg = crypto.encryptMessage(textMsg);
+				String payload = "<body>" + encryptedMsg + "</body>";
+				LeafNode roomNode = pubSub.getNode(toJID);
 				roomNode.send(new PayloadItem<SimplePayload>("msg_" + System.currentTimeMillis(), 
-					new SimplePayload(null, null, payload)));
+						new SimplePayload(null, null, payload)));
+			} 
+			else {  // One-to-one message
+				try {
+					textMsg.setRecipients(Arrays.asList(toJID));
+					String encryptedMsg = crypto.encryptMessage(textMsg);
+					newMessage.setBody(encryptedMsg);
+				}
+				catch (Exception ex) {
+					ex.printStackTrace();
+					newMessage.setBody(message);
+				}
+				newMessage.addExtension(new DeliveryReceiptRequest());
 			}
-			catch (Exception ex) {
-				Log.e(TAG, "Failed to publish pubsub message", ex);
+			
+			if (isAuthenticated()) {
+				if (!isRoomMessage) {
+					addChatMessageToDB(ChatConstants.OUTGOING, toJID, message, ChatConstants.DS_SENT_OR_READ,
+						System.currentTimeMillis(), newMessage.getPacketID(), toJID);
+					mXMPPConnection.sendPacket(newMessage);
+				}
+			} 
+			else {
+				// send offline -> store to DB
+				addChatMessageToDB(ChatConstants.OUTGOING, toJID, message, ChatConstants.DS_NEW,
+						System.currentTimeMillis(), newMessage.getPacketID(), toJID);
 			}
-		} 
-		else {  // One-to-one message
-			try {
-				textMsg.setRecipients(Arrays.asList(toJID));
-				String encryptedMsg = crypto.encryptEnvelope(new Envelope(textMsg));
-				newMessage.setBody(encryptedMsg);
-			}
-			catch (Exception ex) {
-				ex.printStackTrace();
-				newMessage.setBody(message);
-			}
-			newMessage.addExtension(new DeliveryReceiptRequest());
 		}
-		
-		if (isAuthenticated()) {
-			if (!isRoomMessage) {
-				addChatMessageToDB(ChatConstants.OUTGOING, toJID, message, ChatConstants.DS_SENT_OR_READ,
-					System.currentTimeMillis(), newMessage.getPacketID(), toJID);
-				mXMPPConnection.sendPacket(newMessage);
-			}
-		} 
-		else {
-			// send offline -> store to DB
-			addChatMessageToDB(ChatConstants.OUTGOING, toJID, message, ChatConstants.DS_NEW,
-					System.currentTimeMillis(), newMessage.getPacketID(), toJID);
+		catch (Exception ex) {
+			Log.e(TAG, "Failed to publish pubsub message", ex);
 		}
 	}
 
@@ -1166,44 +1165,42 @@ public class SmackableImp implements Smackable {
 			return;
 		}
 		try {
-			Envelope env = crypto.decryptEnvelope(msg.getBody(), mConfig.jabberID);
-			if (env == null) {
+			RoomsMessage roomsMessage = crypto.decryptMessage(msg.getBody(), mConfig.jabberID);
+			if (roomsMessage == null) {
 				return;
 			}
-			RoomsMessage roomsMessage = env.getMessage();
-			if (roomsMessage instanceof TextMessage) {
+			else if (roomsMessage instanceof TextMessage) {
 				TextMessage textMessage = (TextMessage)roomsMessage;
-				boolean isNew = addChatMessageToDB(direction, fromJID, textMessage.getText(), is_new, ts, msg.getPacketID(), textMessage.getFrom());
+				boolean isNew = addChatMessageToDB(direction, fromJID, textMessage.getText(), is_new, ts, msg.getPacketID(), textMessage.getSender());
 				if (direction == ChatConstants.INCOMING && isNew) {
 					mServiceCallBack.newMessage(fromJID, null, textMessage.getText(), false);
 				}
 			}
 			else if (roomsMessage instanceof Invitation) {
 				final Invitation invitation = (Invitation)roomsMessage;
-				final RoomConfiguration config = invitation.getRoomConfiguration();
 				final ContentValues values = new ContentValues();
-				values.put(RoomsConstants.ID, config.getRoomID());
-				values.put(RoomsConstants.NAME, config.getRoomName());
+				values.put(RoomsConstants.ID, invitation.getRoomID());
+				values.put(RoomsConstants.NAME, invitation.getRoomName());
 				values.put(RoomsConstants.STATUS, StatusMode.chat.ordinal());
 				values.put(RoomsConstants.CREATED, new Date().getTime());
 				values.put(RoomsConstants.TOPIC, "");
-				values.put(RoomsConstants.OWNER, config.getFrom());
+				values.put(RoomsConstants.OWNER, invitation.getSender());
 				values.put(RoomsConstants.LOGGER, "");
-				upsertRoom(values, config.getRoomID());
+				upsertRoom(values, invitation.getRoomID());
 				
-				upsertParticipants(config.getRoomID(), config.getParticipants());
-				for (Participant p : config.getParticipants()) {
+				upsertParticipants(invitation.getRoomID(), invitation.getParticipants());
+				for (Participant p : invitation.getParticipants()) {
 					crypto.getKeyRetriever().savePublicKey(p.getJid(), p.getPublicKey());
 				}
 				mServiceCallBack.rosterChanged();
 
-				LeafNode roomNode = pubSub.getNode("/f24_rooms/" + config.getRoomID());
+				LeafNode roomNode = pubSub.getNode(invitation.getRoomID());
 				List<Subscription> subs = roomNode.getSubscriptions();
 				if (subs.isEmpty()) {
 					subs.add(roomNode.subscribe(mConfig.jabberID));
 				}
 				for (org.jivesoftware.smackx.pubsub.Item item : roomNode.getItems(subs.get(0).getId())) {
-					processPubSubItem(item, new Date(), config.getRoomID());
+					processPubSubItem(item, new Date(), invitation.getRoomID());
 				}
 			}
 			else if (roomsMessage instanceof RegistrationConfirmation) {
@@ -1235,17 +1232,17 @@ public class SmackableImp implements Smackable {
 		String xml = payload.toXML();
 		Log.d(TAG, xml);
 		String encryptedMessage = xml.substring(xml.indexOf('>') + 1, xml.lastIndexOf('<'));
-		Envelope envelope = crypto.decryptEnvelope(encryptedMessage, mConfig.jabberID);
-		if (envelope != null) try {
-			if (envelope.getMessage() instanceof RoomConfiguration) { // Room configuration changed
-				RoomConfiguration configuration = (RoomConfiguration)envelope.getMessage();
+		RoomsMessage roomsMessage = crypto.decryptMessage(encryptedMessage, mConfig.jabberID);
+		if (roomsMessage != null) try {
+			if (roomsMessage instanceof RoomConfiguration) { // Room configuration changed
+				RoomConfiguration configuration = (RoomConfiguration)roomsMessage;
 				final ContentValues values = new ContentValues();
 				values.put(RoomsConstants.ID, configuration.getRoomID());
 				values.put(RoomsConstants.NAME, configuration.getRoomName());
 				values.put(RoomsConstants.STATUS, StatusMode.chat.ordinal());
 				values.put(RoomsConstants.CREATED, publishDate.getTime());
 				values.put(RoomsConstants.TOPIC, "");
-				values.put(RoomsConstants.OWNER, configuration.getFrom());
+				values.put(RoomsConstants.OWNER, configuration.getSender());
 				values.put(RoomsConstants.LOGGER, "");
 				upsertRoom(values, configuration.getRoomID());
 				
@@ -1255,12 +1252,12 @@ public class SmackableImp implements Smackable {
 				}
 				mServiceCallBack.rosterChanged();
 			}
-			else if (envelope.getMessage() instanceof TextMessage) {
-				TextMessage textMessage = (TextMessage)envelope.getMessage();
+			else if (roomsMessage instanceof TextMessage) {
+				TextMessage textMessage = (TextMessage)roomsMessage;
 				String text = textMessage.getText();
-				if (addChatMessageToDB(ChatConstants.INCOMING, roomID, text, 1, publishDate.getTime(), item.getId(), textMessage.getFrom()) 
-						&& !textMessage.getFrom().equals(mConfig.jabberID)){
-					mServiceCallBack.newMessage(textMessage.getFrom(), roomID, text, false);
+				if (addChatMessageToDB(ChatConstants.INCOMING, roomID, text, 1, publishDate.getTime(), item.getId(), textMessage.getSender()) 
+						&& !textMessage.getSender().equals(mConfig.jabberID)){
+					mServiceCallBack.newMessage(textMessage.getSender(), roomID, text, false);
 				}
 			}
 		}
@@ -1437,21 +1434,26 @@ public class SmackableImp implements Smackable {
 
 	@Override
 	public void sendControlMessage(RoomsMessage message) {
-		message.setFrom(mConfig.jabberID);
-		message.setRecipients(Arrays.asList(KeyRetriever.ROOMS_SERVER));
-		String encryptedMsg = crypto.encryptEnvelope(new Envelope(message));
-		final Message newMessage = new Message(KeyRetriever.ROOMS_SERVER, Message.Type.chat);
-		newMessage.setBody(encryptedMsg);
-
-		if (isAuthenticated()) {
-			addChatMessageToDB(ChatConstants.OUTGOING, KeyRetriever.ROOMS_SERVER, encryptedMsg, ChatConstants.DS_SENT_OR_READ,
-				System.currentTimeMillis(), newMessage.getPacketID(), KeyRetriever.ROOMS_SERVER);
-			mXMPPConnection.sendPacket(newMessage);
-		} 
-		else {
-			// send offline -> store to DB
-			addChatMessageToDB(ChatConstants.OUTGOING, KeyRetriever.ROOMS_SERVER, encryptedMsg, ChatConstants.DS_NEW,
+		try {
+			message.setSender(mConfig.jabberID);
+			message.setRecipients(Arrays.asList(KeyRetriever.ROOMS_SERVER));
+			String encryptedMsg = crypto.encryptMessage(message);
+			final Message newMessage = new Message(KeyRetriever.ROOMS_SERVER, Message.Type.chat);
+			newMessage.setBody(encryptedMsg);
+	
+			if (isAuthenticated()) {
+				addChatMessageToDB(ChatConstants.OUTGOING, KeyRetriever.ROOMS_SERVER, encryptedMsg, ChatConstants.DS_SENT_OR_READ,
 					System.currentTimeMillis(), newMessage.getPacketID(), KeyRetriever.ROOMS_SERVER);
+				mXMPPConnection.sendPacket(newMessage);
+			} 
+			else {
+				// send offline -> store to DB
+				addChatMessageToDB(ChatConstants.OUTGOING, KeyRetriever.ROOMS_SERVER, encryptedMsg, ChatConstants.DS_NEW,
+						System.currentTimeMillis(), newMessage.getPacketID(), KeyRetriever.ROOMS_SERVER);
+			}
+		}
+		catch (Exception ex) {
+			Log.e(TAG, "Failed to send control message", ex);
 		}
 	}
 }
