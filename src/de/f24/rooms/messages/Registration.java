@@ -9,7 +9,7 @@ public class Registration extends RoomsMessage {
 
 	public void setConfirmationCode(String confirmationCode)
 			throws JSONException {
-		getBody().put("put", confirmationCode);
+		getBody().put("pin", confirmationCode);
 	}
 
 	public String getPublicKey() throws JSONException {
