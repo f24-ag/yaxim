@@ -1,77 +1,122 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-	android:versionCode="18" android:versionName="@string/build_revision" package="org.yaxim.androidclient">
+    package="org.yaxim.androidclient"
+    android:versionCode="18"
+    android:versionName="@string/build_revision" >
 
-	<uses-sdk android:targetSdkVersion="17" android:minSdkVersion="11"/>
+    <uses-sdk
+        android:minSdkVersion="11"
+        android:targetSdkVersion="17" />
 
-	<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-	<uses-permission android:name="android.permission.INTERNET" />
-	<uses-permission android:name="android.permission.VIBRATE" />
-	<uses-permission android:name="android.permission.WAKE_LOCK" />
-	<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
-	<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.GET_ACCOUNTS" />
+    <uses-permission android:name="android.permission.GET_TASKS" />
+    <uses-permission android:name="com.google.android.c2dm.permission.RECEIVE" />
 
-	<application android:icon="@drawable/icon"
-		android:name=".YaximApplication"
-		android:theme="@style/YaximDarkTheme"
-		android:supportsRtl="true"
-		android:label="@string/app_name"
-		android:allowBackup="false">
+    <permission
+        android:name="de.yaxim.androidclient.gcm.permission.C2D_MESSAGE"
+        android:protectionLevel="signature" />
 
-		<activity android:name=".MainWindow" android:label="@string/app_name"
-			android:launchMode="singleTask"
-			android:configChanges="orientation|keyboardHidden">
-			<intent-filter>
-				<action android:name="android.intent.action.MAIN" />
-				<category android:name="android.intent.category.LAUNCHER" />
-			</intent-filter>
-			<intent-filter android:icon="@drawable/icon" android:label="@string/app_name">
-				<action android:name="android.intent.action.SEND"></action>
-				<category android:name="android.intent.category.DEFAULT"></category>
-				<data android:mimeType="text/*"></data>
-			</intent-filter>
-			<intent-filter android:icon="@drawable/icon" android:label="@string/app_name">
-				<action android:name="android.intent.action.SENDTO" />
-				<category android:name="android.intent.category.DEFAULT" />
-				<data android:host="jabber" android:scheme="imto" />
-			</intent-filter>
-		</activity>
+    <uses-permission android:name="de.yaxim.androidclient.gcm.permission.C2D_MESSAGE" />
 
-		<activity android:name=".chat.ChatWindow" android:label="@string/app_name"
-			android:alwaysRetainTaskState="true"
-			android:windowSoftInputMode="stateHidden">
-		</activity>
+    <application
+        android:name=".YaximApplication"
+        android:allowBackup="false"
+        android:icon="@drawable/icon"
+        android:label="@string/app_name"
+        android:theme="@style/YaximDarkTheme" >
+        <activity
+            android:name=".MainWindow"
+            android:configChanges="orientation|keyboardHidden"
+            android:label="@string/app_name"
+            android:launchMode="singleTask" >
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
 
-		<activity android:name=".preferences.MainPrefs"
-			android:label="@string/Menu_Settings">
-		</activity>
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter
+                android:icon="@drawable/icon"
+                android:label="@string/app_name" >
+                <action android:name="android.intent.action.SEND" >
+                </action>
 
-		<activity android:name=".preferences.AccountPrefs"
-			android:label="@string/account_settings_title">
-		</activity>
-		
-        <activity android:name=".chat.FileExplore" android:label="@string/Menu_sendFile" 
-            android:noHistory="true">
+                <category android:name="android.intent.category.DEFAULT" >
+                </category>
+
+                <data android:mimeType="text/*" >
+                </data>
+            </intent-filter>
+            <intent-filter
+                android:icon="@drawable/icon"
+                android:label="@string/app_name" >
+                <action android:name="android.intent.action.SENDTO" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+
+                <data
+                    android:host="jabber"
+                    android:scheme="imto" />
+            </intent-filter>
         </activity>
-        
-		<service android:name=".service.XMPPService">
-			<intent-filter>
-				<action android:name="de.hdmstuttgart.yaxim.XMPPSERVICE" />
-			</intent-filter>
-		</service>
+        <activity
+            android:name=".chat.ChatWindow"
+            android:alwaysRetainTaskState="true"
+            android:label="@string/app_name"
+            android:windowSoftInputMode="stateHidden" >
+        </activity>
+        <activity
+            android:name=".preferences.MainPrefs"
+            android:label="@string/Menu_Settings" >
+        </activity>
+        <activity
+            android:name=".preferences.AccountPrefs"
+            android:label="@string/account_settings_title" >
+        </activity>
+        <activity
+            android:name=".chat.FileExplore"
+            android:label="@string/Menu_sendFile"
+            android:noHistory="true" >
+        </activity>
 
-		<receiver android:name=".service.YaximBroadcastReceiver">
-			<intent-filter>
-				<action android:name="android.intent.action.ACTION_SHUTDOWN" />
-				<action android:name="android.net.conn.CONNECTIVITY_CHANGE" />
-			</intent-filter>
+        <service android:name=".service.XMPPService" >
+            <intent-filter>
+                <action android:name="de.hdmstuttgart.yaxim.XMPPSERVICE" />
+            </intent-filter>
+        </service>
+
+        <receiver android:name=".service.YaximBroadcastReceiver" >
+            <intent-filter>
+                <action android:name="android.intent.action.ACTION_SHUTDOWN" />
+                <action android:name="android.net.conn.CONNECTIVITY_CHANGE" />
+            </intent-filter>
+        </receiver>
+
+        <provider
+            android:name=".data.ChatProvider"
+            android:authorities="org.yaxim.androidclient.provider.Chats" />
+        <provider
+            android:name=".data.RosterProvider"
+            android:authorities="org.yaxim.androidclient.provider.Roster" />
+
+        <activity android:name="de.duenndns.ssl.MemorizingActivity" />
+
+        <!-- Broadcast receiver notification messages as a hub for all listeners -->
+        <receiver
+    		android:name="org.jboss.aerogear.android.unifiedpush.AeroGearGCMMessageReceiver"
+    		android:permission="com.google.android.c2dm.permission.SEND" >
+    		
+    		<intent-filter>
+        		<action android:name="com.google.android.c2dm.intent.RECEIVE" />
+        		<category android:name="org.yaxim.androidclient" />
+    		</intent-filter>
+    		<meta-data android:name="DEFAULT_MESSAGE_HANDLER_KEY" android:value="org.yaxim.androidclient.NotifyingHandler"/>
 		</receiver>
+    </application>
 
-		<provider android:name=".data.ChatProvider"
-			android:authorities="org.yaxim.androidclient.provider.Chats" />
-		<provider android:name=".data.RosterProvider"
-			android:authorities="org.yaxim.androidclient.provider.Roster" />
-
-		<activity android:name="de.duenndns.ssl.MemorizingActivity" />
-	</application>
 </manifest>

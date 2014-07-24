@@ -10,6 +10,8 @@ import java.util.List;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.X509TrustManager;
 
+import org.jboss.aerogear.android.Callback;
+import org.jboss.aerogear.android.unifiedpush.PushRegistrar;
 import org.jivesoftware.smack.AccountManager;
 import org.jivesoftware.smack.ConnectionConfiguration;
 import org.jivesoftware.smack.ConnectionListener;
@@ -109,9 +111,12 @@ import android.util.Log;
 import de.f24.rooms.messages.Invitation;
 import de.f24.rooms.messages.Participant;
 import de.f24.rooms.messages.PersonalInfo;
+import de.f24.rooms.messages.PushRequest;
 import de.f24.rooms.messages.RegistrationConfirmation;
 import de.f24.rooms.messages.RoomConfiguration;
 import de.f24.rooms.messages.RoomsMessage;
+import de.f24.rooms.messages.RoomsMessageFactory;
+import de.f24.rooms.messages.RoomsMessageType;
 import de.f24.rooms.messages.TextMessage;
 
 public class SmackableImp implements Smackable {
@@ -818,6 +823,12 @@ public class SmackableImp implements Smackable {
 				LeafNode roomNode = pubSub.getNode(toJID);
 				roomNode.send(new PayloadItem<SimplePayload>("msg_" + System.currentTimeMillis(), 
 						new SimplePayload(null, null, payload)));
+				
+				// Send push request
+				PushRequest pushRequest = (PushRequest)RoomsMessageFactory.getRoomsMessage(RoomsMessageType.PushRequest);
+				recipients.remove(mConfig.jabberID); // Do not push to myself 
+				pushRequest.setParticipants(recipients);
+				sendControlMessage(pushRequest);
 			} 
 			else {  // One-to-one message
 				try {
@@ -1220,6 +1231,7 @@ public class SmackableImp implements Smackable {
 				PersonalInfo message = new PersonalInfo();
 				message.setName(prefs.getString(PreferenceConstants.NAME, ""));
 				sendControlMessage(message);
+				YaximApplication.getApp(mService).registerForGMC(mService, confirm.getJid());
 			}
 		}
 		catch (Exception ex) {

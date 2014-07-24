@@ -8,6 +8,8 @@ import java.util.List;
 import java.util.Set;
 
 import org.abstractj.kalium.keys.PublicKey;
+import org.jboss.aerogear.android.Callback;
+import org.jboss.aerogear.android.unifiedpush.PushRegistrar;
 import org.yaxim.androidclient.IXMPPRosterCallback.Stub;
 import org.yaxim.androidclient.crypto.Crypto;
 import org.yaxim.androidclient.crypto.KeyRetriever;
@@ -105,10 +107,10 @@ public class MainWindow extends SherlockFragmentActivity {
 		actionBar.setHomeButtonEnabled(true);
 		registerCrashReporter();
 		
-	    actionBar.addTab(actionBar.newTab().setText(R.string.rooms_contacts)
-	              .setTabListener(new MainTabListener<RosterTabFragment>(this, "tab1", RosterTabFragment.class)));		
 	    actionBar.addTab(actionBar.newTab().setText(R.string.rooms_rooms)
 	              .setTabListener(new MainTabListener<RoomsTabFragment>(this, "tab2", RoomsTabFragment.class)));		
+	    actionBar.addTab(actionBar.newTab().setText(R.string.rooms_contacts)
+	              .setTabListener(new MainTabListener<RosterTabFragment>(this, "tab1", RosterTabFragment.class)));		
 
 		showFirstStartUpDialogIfPrefsEmpty();
 		
@@ -734,7 +736,9 @@ public class MainWindow extends SherlockFragmentActivity {
 				ConnectionState cs = serviceAdapter.getConnectionState();
 				updateConnectionState(cs);
 				
-				rosterTab.updateRoster();
+				if (rosterTab != null) {
+					rosterTab.updateRoster();
+				}
 
 				// when returning from prefs to main activity, apply new config
 				if (mConfig.reconnect_required && cs == ConnectionState.ONLINE) {

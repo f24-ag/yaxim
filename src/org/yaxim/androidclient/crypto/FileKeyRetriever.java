@@ -76,7 +76,7 @@ public class FileKeyRetriever implements KeyRetriever {
 		out.write(keyPair.getPublicKey().toString());
 		out.close();
 		out = new FileWriter(new File(context.getFilesDir(), jid + ".private"));
-		out.write(keyPair.getPublicKey().toString());
+		out.write(keyPair.getPrivateKey().toString());
 		out.close();
 	}
 }

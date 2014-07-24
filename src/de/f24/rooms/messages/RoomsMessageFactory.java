@@ -22,6 +22,8 @@ public class RoomsMessageFactory {
 			return new RoomConfiguration();
 		case TextMessage:
 			return new TextMessage();
+		case PushRequest:
+			return new PushRequest();
 		default:
 			return null;
 		}

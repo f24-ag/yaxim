@@ -303,4 +303,6 @@
 	<string name="rooms.phoneNumber">Enter your phone number</string>
 	<string name="rooms.confirmationCode">Confirmation code from SMS</string>
 	<string name="rooms.userName">Your name</string>
+	<string name="rooms.new_message">New messages from ROOMS!</string>
+		
 </resources>
