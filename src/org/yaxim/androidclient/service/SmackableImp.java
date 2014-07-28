@@ -1178,7 +1178,7 @@ public class SmackableImp implements Smackable {
 		try {
 			RoomsMessage roomsMessage = crypto.decryptMessage(msg.getBody(), mConfig.jabberID);
 			if (roomsMessage == null) {
-				return;
+				return; 
 			}
 			else if (roomsMessage instanceof TextMessage) {
 				TextMessage textMessage = (TextMessage)roomsMessage;

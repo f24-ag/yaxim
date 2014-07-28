@@ -79,13 +79,13 @@ public class Crypto {
 			output.write(intToByteArray(0)); // metadata
 			output.write(intToByteArray(0)); // metadata
 
+			output.write(intToByteArray(envelope.getRecipients().size())); // number of keys
 			byte[] nonce = random.randomBytes(SodiumConstants.NONCE_BYTES);
 			output.write(nonce); // nonce
 
 			KeyPair myKeys = keyRetriever.loadKeys(envelope.getSender());
 			output.write(myKeys.getPublicKey().toBytes()); // sender's public key
 
-			output.write(intToByteArray(envelope.getRecipients().size())); // number of keys
 			byte[] symmetricKey = random.randomBytes(SECRETKEY_BYTES);
 			for (String receipient : envelope.getRecipients()) {
 				PublicKey otherKey = keyRetriever.loadPublicKey(receipient);
@@ -134,9 +134,9 @@ public class Crypto {
 				throw new UnsupportedEncodingException("Version " + version + " is not supported");
 			}
 			readBytes(input, 8); // Metadata
+	        int noKeys = byteArrayToInt(readBytes(input, 4));
 	        byte[] nonce = readBytes(input, SodiumConstants.NONCE_BYTES);
 	        PublicKey otherKey = new PublicKey(readBytes(input, SECRETKEY_BYTES));
-	        int noKeys = byteArrayToInt(readBytes(input, 4));
 			KeyPair myKeys = keyRetriever.loadKeys(myJID);
 			Box box = new Box(otherKey, myKeys.getPrivateKey());
 			byte[] symmetricKey = null;

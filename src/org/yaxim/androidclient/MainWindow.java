@@ -8,8 +8,6 @@ import java.util.List;
 import java.util.Set;
 
 import org.abstractj.kalium.keys.PublicKey;
-import org.jboss.aerogear.android.Callback;
-import org.jboss.aerogear.android.unifiedpush.PushRegistrar;
 import org.yaxim.androidclient.IXMPPRosterCallback.Stub;
 import org.yaxim.androidclient.crypto.Crypto;
 import org.yaxim.androidclient.crypto.KeyRetriever;
