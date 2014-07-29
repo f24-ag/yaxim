@@ -112,7 +112,8 @@
 	<string name="Menu_decryptFile">Decrypt File</string>
 	<string name="Menu_startGroupChat">Start group chat</string>
 	<string name="Menu_addRoom">Open new room</string>
-			
+	<string name="Menu_sync">Sync addressbook</string>
+				
 	<!-- AddFriend -->
 	<string name="addFriend_Title">Add a Contact</string>
 	<string name="addFriend_Summ">Please enter the Jabber ID of your friend, the
@@ -304,5 +305,6 @@
 	<string name="rooms.confirmationCode">Confirmation code from SMS</string>
 	<string name="rooms.userName">Your name</string>
 	<string name="rooms.new_message">New messages from ROOMS!</string>
-		
+	<string name="rooms.search_contact">Name of contact to search</string>
+			
 </resources>

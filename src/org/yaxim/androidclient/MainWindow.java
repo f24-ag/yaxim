@@ -33,6 +33,7 @@ import org.yaxim.androidclient.util.StatusMode;
 import android.annotation.TargetApi;
 import android.app.AlertDialog;
 import android.content.ComponentName;
+import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -49,6 +50,7 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.os.RemoteException;
 import android.preference.PreferenceManager;
+import android.provider.ContactsContract;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.text.InputType;
@@ -69,6 +71,10 @@ import com.actionbarsherlock.app.SherlockFragmentActivity;
 import com.actionbarsherlock.view.Menu;
 import com.actionbarsherlock.view.Window;
 import com.nullwire.trace.ExceptionHandler;
+
+import de.f24.rooms.messages.ContactSync;
+import de.f24.rooms.messages.RoomsMessageFactory;
+import de.f24.rooms.messages.RoomsMessageType;
 
 public class MainWindow extends SherlockFragmentActivity {
 
@@ -598,7 +604,7 @@ public class MainWindow extends SherlockFragmentActivity {
 			return true;
 
 		case R.id.menu_add_friend:
-			addToRosterDialog(null);
+			addContact();
 			return true;
 
 		case R.id.menu_add_room:
@@ -633,6 +639,10 @@ public class MainWindow extends SherlockFragmentActivity {
 			
 		case R.id.menu_register:
 			registerDialog1();
+			return true;
+			
+		case R.id.menu_sync:
+			syncAddressBook();
 			return true;
 		}
 
@@ -786,7 +796,7 @@ public class MainWindow extends SherlockFragmentActivity {
 	private void showFirstStartUpDialogIfPrefsEmpty() {
 		Log.i(TAG, "showFirstStartUpDialogIfPrefsEmpty, JID: "
 						+ mConfig.jabberID);
-		if (mConfig.jabberID.length() < 3 || mConfig.jabberID.equals("newuser@rooms.f24.com")) {
+		if (mConfig.jabberID.length() < 3 || mConfig.jabberID.equals(KeyRetriever.NEW_USER)) {
 			// load preference defaults
 			PreferenceManager.setDefaultValues(this, R.layout.mainprefs, false);
 			PreferenceManager.setDefaultValues(this, R.layout.accountprefs, false);
@@ -921,6 +931,25 @@ public class MainWindow extends SherlockFragmentActivity {
 					public void onClick(DialogInterface dialog, int which) {
 						serviceAdapter.sendRegistrationMessage1(input.getText().toString());
 						new FirstStartDialog(MainWindow.this, serviceAdapter).show();
+					}
+				})
+		.setNegativeButton(android.R.string.cancel, null)
+		.create().show();
+	}
+	
+	private void syncAddressBook() {
+		serviceAdapter.syncContacts();
+	}
+	
+	private void addContact() {
+		final EditText input = new EditText(this);
+		new AlertDialog.Builder(this)
+		.setTitle(R.string.rooms_search_contact)
+		.setView(input)
+		.setPositiveButton(android.R.string.ok,
+				new DialogInterface.OnClickListener() {
+					public void onClick(DialogInterface dialog, int which) {
+						serviceAdapter.searchContact(input.getText().toString());
 					}
 				})
 		.setNegativeButton(android.R.string.cancel, null)

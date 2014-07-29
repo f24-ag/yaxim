@@ -166,4 +166,20 @@ public class XMPPRosterServiceAdapter {
 			e.printStackTrace();
 		}
 	}
+
+	public void syncContacts() {
+		try {
+			xmppServiceStub.syncContacts();
+		} catch (RemoteException e) {
+			e.printStackTrace();
+		}
+	}
+
+	public void searchContact(String name) {
+		try {
+			xmppServiceStub.searchContact(name);
+		} catch (RemoteException e) {
+			e.printStackTrace();
+		}
+	}
 }

@@ -24,6 +24,12 @@ public class RoomsMessageFactory {
 			return new TextMessage();
 		case PushRequest:
 			return new PushRequest();
+		case ContactSync:
+			return new ContactSync();
+		case ContactList:
+			return new ContactList();
+		case ContactSearch:
+			return new ContactSearch();
 		default:
 			return null;
 		}

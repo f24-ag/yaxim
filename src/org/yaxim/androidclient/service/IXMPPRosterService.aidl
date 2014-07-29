@@ -26,6 +26,8 @@ interface IXMPPRosterService {
 	void openRoom(String parentRoomID, String topic, in String[] participants);
 	void sendRegistrationMessage1(String message);
 	void sendRegistrationMessage2(String code, String publicKey);
+	void syncContacts();
+	void searchContact(String name);
 	
 	/* callback methods */
 	

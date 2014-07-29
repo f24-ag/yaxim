@@ -17,18 +17,19 @@
 	
 	<item android:id="@+id/menu_status" android:title="@string/Menu_Status"
 		android:alphabeticShortcut="s" android:icon="@android:drawable/ic_menu_myplaces"
-		android:showAsAction="never"/>
+		android:showAsAction="never" android:visible="false" />
 
 	<item android:id="@+id/menu_settings" android:title="@string/Menu_Settings"
 		android:alphabeticShortcut="p"
 		android:icon="@android:drawable/ic_menu_preferences" />
 
 	<item android:id="@+id/menu_register" android:title="@string/StartupDialog_create_new"
-		android:icon="@android:drawable/ic_menu_agenda" />
+		android:icon="@android:drawable/ic_menu_agenda" android:visible="false" />
 	
 	<item android:id="@+id/menu_about" android:title="@string/Menu_about"
-		android:alphabeticShortcut="y"
-		android:icon="@drawable/about" />
+		android:alphabeticShortcut="y" android:visible="false" android:icon="@drawable/about" />
+	
+	<item android:id="@+id/menu_sync" android:title="@string/Menu_sync" />
 	
 	<item android:id="@+id/menu_exit" android:title="@string/Global_Exit"
 		android:alphabeticShortcut="x"

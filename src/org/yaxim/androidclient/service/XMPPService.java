@@ -10,6 +10,8 @@ import org.json.JSONException;
 import org.yaxim.androidclient.IXMPPRosterCallback;
 import org.yaxim.androidclient.MainWindow;
 import org.yaxim.androidclient.R;
+import org.yaxim.androidclient.YaximApplication;
+import org.yaxim.androidclient.crypto.Crypto;
 import org.yaxim.androidclient.data.RosterProvider;
 import org.yaxim.androidclient.data.RosterProvider.RoomsConstants;
 import org.yaxim.androidclient.exceptions.YaximXMPPException;
@@ -20,20 +22,27 @@ import android.app.AlarmManager;
 import android.app.Notification;
 import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.database.Cursor;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.net.Uri;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.RemoteCallbackList;
 import android.os.RemoteException;
+import android.provider.ContactsContract;
 import android.util.Log;
+import de.f24.rooms.messages.ContactSearch;
+import de.f24.rooms.messages.ContactSync;
 import de.f24.rooms.messages.OpenRoomRequest;
 import de.f24.rooms.messages.Registration;
 import de.f24.rooms.messages.RegistrationRequest;
+import de.f24.rooms.messages.RoomsMessageFactory;
+import de.f24.rooms.messages.RoomsMessageType;
 
 public class XMPPService extends GenericService {
 
@@ -158,6 +167,55 @@ public class XMPPService extends GenericService {
 		mConnectionDemanded.set(mConfig.autoConnect);
 		doConnect();
 		return START_STICKY;
+	}
+	
+	public void syncContacts() {
+		final Crypto crypto = YaximApplication.getApp(getApplicationContext()).mCrypto;
+		Uri CONTENT_URI = ContactsContract.Contacts.CONTENT_URI;
+		String _ID = ContactsContract.Contacts._ID;
+		String DISPLAY_NAME = ContactsContract.Contacts.DISPLAY_NAME;
+		String HAS_PHONE_NUMBER = ContactsContract.Contacts.HAS_PHONE_NUMBER;
+
+		Uri PhoneCONTENT_URI = ContactsContract.CommonDataKinds.Phone.CONTENT_URI;
+		String Phone_CONTACT_ID = ContactsContract.CommonDataKinds.Phone.CONTACT_ID;
+		String NUMBER = ContactsContract.CommonDataKinds.Phone.NUMBER;
+		
+		List<String> phones = new ArrayList<String>();
+		ContentResolver contentResolver = getContentResolver();
+		Cursor cursor = contentResolver.query(CONTENT_URI, null, null, null, null);	
+		// Loop for every contact in the phone
+		if (cursor.getCount() > 0) {
+			while (cursor.moveToNext()) {
+				String contact_id = cursor.getString(cursor.getColumnIndex(_ID));
+				String name = cursor.getString(cursor.getColumnIndex(DISPLAY_NAME));
+				int hasPhoneNumber = Integer.parseInt(cursor.getString(cursor.getColumnIndex(HAS_PHONE_NUMBER)));
+				if (hasPhoneNumber > 0) {
+					// Query and loop for every phone number of the contact
+					Cursor phoneCursor = contentResolver.query(PhoneCONTENT_URI, null, Phone_CONTACT_ID + " = ?", new String[] { contact_id }, null);
+					while (phoneCursor.moveToNext()) {
+						String phoneNumber = phoneCursor.getString(phoneCursor.getColumnIndex(NUMBER)).replaceAll("\\s+","");
+						if (!phoneNumber.startsWith("+")) {
+							if (phoneNumber.startsWith("0")) {
+								phoneNumber = "+49" + phoneNumber.substring(1);
+								phones.add(crypto.hash(phoneNumber));
+							}
+						}
+						else {
+							phones.add(crypto.hash(phoneNumber));
+						}
+					}
+					phoneCursor.close();
+				}
+			}
+		}
+		ContactSync sync = (ContactSync)RoomsMessageFactory.getRoomsMessage(RoomsMessageType.ContactSync);
+		try {
+			sync.setHashes(phones);
+			mSmackable.sendControlMessage(sync);
+		}
+		catch (JSONException ex) {
+			Log.e("JSON", ex.getMessage());
+		}
 	}
 
 	private void createServiceChatStub() {
@@ -347,6 +405,23 @@ public class XMPPService extends GenericService {
 					registration.setConfirmationCode(code);
 					registration.setPublicKey(publicKey);
 					mSmackable.sendControlMessage(registration);
+				}
+				catch (JSONException ex) {
+					Log.e("JSON", ex.getMessage());
+				}
+			}
+
+			@Override
+			public void syncContacts() throws RemoteException {
+				XMPPService.this.syncContacts();
+			}
+
+			@Override
+			public void searchContact(String name) throws RemoteException {
+				ContactSearch search = (ContactSearch)RoomsMessageFactory.getRoomsMessage(RoomsMessageType.ContactSearch);
+				try {
+					search.setQuery(name);
+					mSmackable.sendControlMessage(search);
 				}
 				catch (JSONException ex) {
 					Log.e("JSON", ex.getMessage());

@@ -12,9 +12,11 @@ import java.security.InvalidKeyException;
 
 import org.abstractj.kalium.SodiumConstants;
 import org.abstractj.kalium.crypto.Box;
+import org.abstractj.kalium.crypto.Hash;
 import org.abstractj.kalium.crypto.Random;
 import org.abstractj.kalium.crypto.SecretBox;
 import org.abstractj.kalium.crypto.Util;
+import org.abstractj.kalium.encoders.Hex;
 import org.abstractj.kalium.keys.KeyPair;
 import org.abstractj.kalium.keys.PublicKey;
 import org.jivesoftware.smack.util.Base64;
@@ -24,6 +26,8 @@ import de.f24.rooms.messages.RoomsMessageFactory;
 
 public class Crypto {
 	private KeyRetriever keyRetriever;
+	private Hash hash;
+	private Hex hex;
 
 	public KeyRetriever getKeyRetriever() {
 		return keyRetriever;
@@ -35,6 +39,10 @@ public class Crypto {
 		System.out.println(keyPair.getPublicKey().toString());
 		keyRetriever.saveKeys(jid, keyPair);
 		return keyPair;
+	}
+	
+	public String hash(String value) {
+		 return hash.sha256(value, hex);
 	}
 
 	public void encryptStream(InputStream in, OutputStream out,
@@ -170,5 +178,7 @@ public class Crypto {
 
 	public Crypto(KeyRetriever keyRetriever) {
 		this.keyRetriever = keyRetriever;
+		hash = new Hash();
+		hex = new Hex();
 	}
 }

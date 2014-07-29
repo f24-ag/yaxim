@@ -10,8 +10,6 @@ import java.util.List;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.X509TrustManager;
 
-import org.jboss.aerogear.android.Callback;
-import org.jboss.aerogear.android.unifiedpush.PushRegistrar;
 import org.jivesoftware.smack.AccountManager;
 import org.jivesoftware.smack.ConnectionConfiguration;
 import org.jivesoftware.smack.ConnectionListener;
@@ -108,6 +106,7 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.preference.PreferenceManager;
 import android.util.Log;
+import de.f24.rooms.messages.ContactList;
 import de.f24.rooms.messages.Invitation;
 import de.f24.rooms.messages.Participant;
 import de.f24.rooms.messages.PersonalInfo;
@@ -1206,11 +1205,8 @@ public class SmackableImp implements Smackable {
 				mServiceCallBack.rosterChanged();
 
 				LeafNode roomNode = pubSub.getNode(invitation.getRoomID());
-				List<Subscription> subs = roomNode.getSubscriptions();
-				if (subs.isEmpty()) {
-					subs.add(roomNode.subscribe(mConfig.jabberID));
-				}
-				for (org.jivesoftware.smackx.pubsub.Item item : roomNode.getItems(subs.get(0).getId())) {
+				Subscription sub = roomNode.subscribe(mConfig.jabberID);
+				for (org.jivesoftware.smackx.pubsub.Item item : roomNode.getItems(sub.getId())) {
 					processPubSubItem(item, new Date(), invitation.getRoomID());
 				}
 			}
@@ -1228,10 +1224,30 @@ public class SmackableImp implements Smackable {
 				mXMPPConnection.disconnect();
 				requestConnectionState(ConnectionState.ONLINE);
 				
+				// Update info 
 				PersonalInfo message = new PersonalInfo();
 				message.setName(prefs.getString(PreferenceConstants.NAME, ""));
 				sendControlMessage(message);
+				
+				// Register for push
 				YaximApplication.getApp(mService).registerForGMC(mService, confirm.getJid());
+				
+				// Sync address book
+				((XMPPService)mService).syncContacts();
+			}
+			else if (roomsMessage instanceof ContactList) {
+				ContactList contactList = (ContactList)roomsMessage;
+				for (Participant p : contactList.getContacts()) {
+					final ContentValues values = new ContentValues();
+					values.put(RosterConstants.JID, p.getJid());
+					values.put(RosterConstants.ALIAS, p.getName());
+					values.put(RosterConstants.STATUS_MODE, StatusMode.offline.ordinal());
+					values.put(RosterConstants.STATUS_MESSAGE, "");
+					values.put(RosterConstants.GROUP, "");
+					upsertRoster(values, p.getJid());
+					crypto.getKeyRetriever().savePublicKey(p.getJid(), p.getPublicKey());
+				}
+				mServiceCallBack.rosterChanged();
 			}
 		}
 		catch (Exception ex) {

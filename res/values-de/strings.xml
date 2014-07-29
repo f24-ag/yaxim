@@ -107,7 +107,8 @@
 	<string name="Menu_decryptFile">Datei entschlüsseln</string>
 	<string name="Menu_startGroupChat">Gruppenchat starten</string>
 	<string name="Menu_addRoom">Neuen Raum aufmachen</string>
-				
+	<string name="Menu_sync">Kontaktliste abgleichen</string>
+					
 	<!-- AddFriend -->
 	<string name="addFriend_Title">Neuer Kontakt</string>
 	<string name="addFriend_Summ">Bitte geben Sie die Jabber-ID und den Anzeigenamen für Ihren Kontakt ein und ordnen Sie diesen in eine Kontakgruppe!</string>
@@ -245,4 +246,5 @@
 	<string name="rooms.confirmationCode">SMS-Bestätigungscode</string>
 	<string name="rooms.userName">Ihr Name</string>
 	<string name="rooms.new_message">Neue ROOMS Nachrichten!</string>
+	<string name="rooms.search_contact">Bitte Name eingeben</string>
 </resources>
