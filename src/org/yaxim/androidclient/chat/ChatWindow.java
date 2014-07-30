@@ -417,8 +417,6 @@ public class ChatWindow extends SherlockListActivity implements OnKeyListener,
 
 		@Override
 		public View getView(int position, View convertView, ViewGroup parent) {
-			View row = convertView;
-			ChatItemWrapper wrapper = null;
 			Cursor cursor = this.getCursor();
 			cursor.moveToPosition(position);
 
@@ -451,9 +449,11 @@ public class ChatWindow extends SherlockListActivity implements OnKeyListener,
 				return getFileDownloadView(from, date, extraData);
 			}
 			
-			//boolean from_me = (cursor.getInt(cursor
-			//		.getColumnIndex(ChatProvider.ChatConstants.DIRECTION)) ==
-			//		ChatConstants.OUTGOING);
+			View row = null;
+			ChatItemWrapper wrapper = null;
+			if (convertView != null && convertView.getTag() instanceof ChatItemWrapper) {
+				row = convertView;
+			}
 
 			if (row == null) {
 				LayoutInflater inflater = getLayoutInflater();
@@ -462,13 +462,15 @@ public class ChatWindow extends SherlockListActivity implements OnKeyListener,
 				row.setTag(wrapper);
 			} else {
 				wrapper = (ChatItemWrapper) row.getTag();
-			}
+			} 
 
 			if (!from_me && delivery_status == ChatConstants.DS_NEW) {
 				markAsReadDelayed(_id, DELAY_NEWMSG);
 			}
 
-			wrapper.populateFrom(date, from_me, from, message, delivery_status);
+			if (wrapper != null) {
+				wrapper.populateFrom(date, from_me, from, message, delivery_status);
+			}
 
 			return row;
 		}
@@ -820,7 +822,7 @@ public class ChatWindow extends SherlockListActivity implements OnKeyListener,
 			super();
 			this.crypto = crypto;
 			spinner = new ProgressDialog(ctx);			
-		    spinner.setMessage(ctx.getString(R.string.rooms_uploading));
+		    spinner.setMessage(ctx.getString(R.string.rooms_downloading));
 		}
 		
 		@Override

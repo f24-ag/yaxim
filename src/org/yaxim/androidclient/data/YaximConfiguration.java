@@ -154,7 +154,7 @@ public class YaximConfiguration implements OnSharedPreferenceChangeListener {
 		this.statusMode = prefs.getString(PreferenceConstants.STATUS_MODE, "available");
 		this.statusMessage = prefs.getString(PreferenceConstants.STATUS_MESSAGE, "");
 		this.statusMessageHistory = prefs.getString(PreferenceConstants.STATUS_MESSAGE_HISTORY, statusMessage).split("\036");
-		this.theme = prefs.getString(PreferenceConstants.THEME, "dark");
+		this.theme = prefs.getString(PreferenceConstants.THEME, "light");
 		this.chatFontSize = prefs.getString("setSizeChat", "18");
 		this.showOffline = prefs.getBoolean(PreferenceConstants.SHOW_OFFLINE, false);
 		this.enableGroups = prefs.getBoolean(PreferenceConstants.ENABLE_GROUPS, true);
@@ -166,7 +166,6 @@ public class YaximConfiguration implements OnSharedPreferenceChangeListener {
 			Log.e(TAG, "Exception in getPreferences(): " + e);
 		}
 	}
-
 
 	public int getTheme() {
 		if (theme.equals("light")) {

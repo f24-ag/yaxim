@@ -248,6 +248,7 @@
 	<string name="rooms.new_message">Neue ROOMS Nachrichten!</string>
 	<string name="rooms.search_contact">Bitte Name eingeben</string>
 	<string name="rooms.uploading">Die Datei wird verschlüsselt und hochgeladen...</string>
+	<string name="rooms.downloading">Die Datei wird heruntergeladen und entschlüsselt...</string>
 	<string name="rooms.file">Anhang</string>
 	<string name="rooms.fileName">Dateiname:</string>
 	<string name="rooms.fileSize">Größe:</string>

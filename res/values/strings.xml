@@ -307,6 +307,7 @@
 	<string name="rooms.new_message">New messages from ROOMS!</string>
 	<string name="rooms.search_contact">Name of contact to search</string>
 	<string name="rooms.uploading">Encrypting and uploading the file...</string>
+	<string name="rooms.downloading">Downloading and decrypring the file...</string>
 	<string name="rooms.file">Attachment</string>
 	<string name="rooms.fileName">File name:</string>
 	<string name="rooms.fileSize">Size:</string>
