@@ -1,8 +1,16 @@
 package org.yaxim.androidclient.chat;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.net.URLConnection;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -11,7 +19,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
+import org.json.JSONObject;
 import org.yaxim.androidclient.MainWindow;
 import org.yaxim.androidclient.R;
 import org.yaxim.androidclient.YaximApplication;
@@ -28,6 +38,7 @@ import org.yaxim.androidclient.service.XMPPService;
 import org.yaxim.androidclient.util.StatusMode;
 
 import android.app.AlertDialog;
+import android.app.ProgressDialog;
 import android.content.ComponentName;
 import android.content.ContentValues;
 import android.content.Context;
@@ -39,6 +50,7 @@ import android.database.Cursor;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.TransitionDrawable;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
@@ -55,7 +67,9 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnKeyListener;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.AdapterView.AdapterContextMenuInfo;
+import android.widget.AdapterView.OnItemClickListener;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
@@ -68,8 +82,14 @@ import com.actionbarsherlock.app.ActionBar;
 import com.actionbarsherlock.app.SherlockListActivity;
 import com.actionbarsherlock.view.Menu;
 import com.actionbarsherlock.view.Window;
+import com.amazonaws.auth.BasicAWSCredentials;
+import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
+import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.model.PutObjectRequest;
+import com.amazonaws.services.s3.model.ResponseHeaderOverrides;
 
-import de.f24.rooms.messages.Participant;
+import de.f24.rooms.messages.RoomsMessageType;
 
 @SuppressWarnings("deprecation") /* recent ClipboardManager only available since API 11 */
 public class ChatWindow extends SherlockListActivity implements OnKeyListener,
@@ -82,7 +102,8 @@ public class ChatWindow extends SherlockListActivity implements OnKeyListener,
 	private static final String[] PROJECTION_FROM = new String[] {
 			ChatProvider.ChatConstants._ID, ChatProvider.ChatConstants.DATE,
 			ChatProvider.ChatConstants.DIRECTION, ChatProvider.ChatConstants.SENDER,
-			ChatProvider.ChatConstants.MESSAGE, ChatProvider.ChatConstants.DELIVERY_STATUS };
+			ChatProvider.ChatConstants.MESSAGE, ChatProvider.ChatConstants.DELIVERY_STATUS, 
+			ChatProvider.ChatConstants.TYPE, ChatProvider.ChatConstants.EXTRA_DATA };
 
 	private static final int[] PROJECTION_TO = new int[] { R.id.chat_date,
 			R.id.chat_from, R.id.chat_message };
@@ -156,6 +177,21 @@ public class ChatWindow extends SherlockListActivity implements OnKeyListener,
 		
 		setCustomTitle(titleUserid);
 		setChatWindowAdapter();
+		getListView().setOnItemClickListener(new OnItemClickListener() {
+			@Override
+			public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+				if (view.getTag() instanceof JSONObject) { // Extra data in JSON format
+					try {
+						JSONObject extraData = (JSONObject)view.getTag();
+						Crypto crypto = YaximApplication.getApp(getApplicationContext()).mCrypto;
+						new DownloadFileTask(ChatWindow.this, crypto).execute(extraData);
+					}
+					catch (Exception ex) {
+						Log.e(TAG, ex.getMessage());
+					}
+				}
+			}
+		});
 	}
 
 	private void setCustomTitle(String title) {
@@ -360,6 +396,24 @@ public class ChatWindow extends SherlockListActivity implements OnKeyListener,
 			mScreenName = screenName;
 			mJID = JID;
 		}
+		
+		public View getFileDownloadView(String from, String date, String extraData) {
+			LayoutInflater inflater = getLayoutInflater();
+			View row = inflater.inflate(R.layout.chatfilerow, null);
+			((TextView) row.findViewById(R.id.chat_date)).setText(date);
+			((TextView) row.findViewById(R.id.chat_from)).setText(from);
+			try {
+				JSONObject fileInfo = new JSONObject(extraData);
+				((TextView) row.findViewById(R.id.fileNameText)).setText(fileInfo.getString("filename"));
+				((TextView) row.findViewById(R.id.fileSizeText)).setText(fileInfo.getString("size"));
+				((TextView) row.findViewById(R.id.fileDescriptionText)).setText(fileInfo.getString("description"));
+				row.setTag(fileInfo);
+			}
+			catch (Exception ex) {
+				Log.e(TAG, ex.getMessage());
+			}
+			return row;
+		}
 
 		@Override
 		public View getView(int position, View convertView, ViewGroup parent) {
@@ -376,14 +430,30 @@ public class ChatWindow extends SherlockListActivity implements OnKeyListener,
 			String date = getDateString(dateMilliseconds);
 			String message = cursor.getString(cursor
 					.getColumnIndex(ChatProvider.ChatConstants.MESSAGE));
-			//boolean from_me = (cursor.getInt(cursor
-			//		.getColumnIndex(ChatProvider.ChatConstants.DIRECTION)) ==
-			//		ChatConstants.OUTGOING);
+			int intType = cursor.getInt(cursor
+					.getColumnIndex(ChatProvider.ChatConstants.TYPE));
+			RoomsMessageType type = RoomsMessageType.values()[intType];
 			String sender = cursor.getString(cursor
 					.getColumnIndex(ChatProvider.ChatConstants.SENDER));
 			boolean from_me = mConfig.jabberID.equalsIgnoreCase(sender);
+			String from = sender;
+			if (sender.equals(mJID)){
+				from = mScreenName;
+			}
+			if (participants != null && participants.get(from) != null) {
+				from = participants.get(from);
+			}
 			int delivery_status = cursor.getInt(cursor
 					.getColumnIndex(ChatProvider.ChatConstants.DELIVERY_STATUS));
+
+			if (type == RoomsMessageType.File) {
+				String extraData = cursor.getString(cursor.getColumnIndex(ChatProvider.ChatConstants.EXTRA_DATA));
+				return getFileDownloadView(from, date, extraData);
+			}
+			
+			//boolean from_me = (cursor.getInt(cursor
+			//		.getColumnIndex(ChatProvider.ChatConstants.DIRECTION)) ==
+			//		ChatConstants.OUTGOING);
 
 			if (row == null) {
 				LayoutInflater inflater = getLayoutInflater();
@@ -398,9 +468,6 @@ public class ChatWindow extends SherlockListActivity implements OnKeyListener,
 				markAsReadDelayed(_id, DELAY_NEWMSG);
 			}
 
-			String from = sender;
-			if (sender.equals(mJID))
-				from = mScreenName;
 			wrapper.populateFrom(date, from_me, from, message, delivery_status);
 
 			return row;
@@ -487,9 +554,6 @@ public class ChatWindow extends SherlockListActivity implements OnKeyListener,
 			getMessageView().setTextSize(TypedValue.COMPLEX_UNIT_SP, chatWindow.mChatFontSize);
 			getDateView().setTextSize(TypedValue.COMPLEX_UNIT_SP, chatWindow.mChatFontSize*2/3);
 			getFromView().setTextSize(TypedValue.COMPLEX_UNIT_SP, chatWindow.mChatFontSize*2/3);
-			if (participants != null && participants.get(from) != null) {
-				getFromView().setText(participants.get(from));
-			}
 		}
 		
 		TextView getDateView() {
@@ -541,10 +605,8 @@ public class ChatWindow extends SherlockListActivity implements OnKeyListener,
 		}
 	}
 
-	public void beforeTextChanged(CharSequence s, int start, int count,
-			int after) {
+	public void beforeTextChanged(CharSequence s, int start, int count, int after) {
 		// TODO Auto-generated method stub
-
 	}
 
 	public void onTextChanged(CharSequence s, int start, int before, int count) {
@@ -582,21 +644,16 @@ public class ChatWindow extends SherlockListActivity implements OnKeyListener,
 	
 	@Override
 	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+		if (data == null) {
+			return;
+		}
 		String selectedFile = data.getStringExtra("selectedFile");
-		Crypto crypto = YaximApplication.getApp(getApplicationContext()).mCrypto;
 		long ms = new Date().getTime();
 		if (selectedFile != null) {
 			switch (requestCode) {
 			case R.id.menu_send_file:
-				try {
-					FileInputStream in = new FileInputStream(selectedFile);
-					FileOutputStream out = new FileOutputStream(selectedFile + ".encrypted");
-					crypto.encryptStream(in, out, mConfig.jabberID, mWithJabberID);
-					mServiceAdapter.sendFile(mWithJabberID + "/Smack", selectedFile + ".encrypted");
-				}
-				catch (Exception ex) {
-					Log.w(TAG, ex.getMessage(), ex);
-				}
+				Crypto crypto = YaximApplication.getApp(getApplicationContext()).mCrypto;
+				new UploadFileTask(this, crypto).execute(selectedFile);
 				break;
 			}
 		}
@@ -686,5 +743,159 @@ public class ChatWindow extends SherlockListActivity implements OnKeyListener,
 			Log.d(TAG, "ContactObserver.onChange: " + selfChange);
 			updateContactStatus();
 		}
+	}
+	
+	class UploadFileTask extends AsyncTask<String, Void, String> {
+		private Crypto crypto;
+		private ProgressDialog spinner;
+		private Exception ex;
+		
+		public UploadFileTask(Context ctx, Crypto crypto) {
+			super();
+			this.crypto = crypto;
+			spinner = new ProgressDialog(ctx);			
+		    spinner.setMessage(ctx.getString(R.string.rooms_uploading));
+		}
+		
+		@Override
+		protected void onPreExecute() {
+		    spinner.show();
+		}
+
+		@Override
+	    protected String doInBackground(String... selectedFiles) {
+	    	String selectedFile = selectedFiles[0];
+			try {
+				File file = new File(selectedFile);
+				
+				FileInputStream in = new FileInputStream(selectedFile);
+				ByteArrayOutputStream out = new ByteArrayOutputStream();
+				String key = crypto.generateSymmetricKey();
+				String fileID = UUID.randomUUID().toString();
+
+				crypto.encryptStream(in, out, key);
+				
+				AmazonS3Client s3Client = new AmazonS3Client(new BasicAWSCredentials("AKIAJDZ75WEA54YRPJTA", "CfIol2A6gc4S0mN2IUhM8XpRUP8HN0h1m7tF17he"));
+				ObjectMetadata metadata = new ObjectMetadata();
+				metadata.setContentLength(out.size());
+				String mime = URLConnection.guessContentTypeFromStream(new FileInputStream(file));//MimeTypeMap.getFileExtensionFromUrl(selectedFile);
+				metadata.setContentType(mime);
+				PutObjectRequest por = new PutObjectRequest("encrypted-file-storage", fileID, new ByteArrayInputStream(out.toByteArray()), metadata); 
+				s3Client.putObject(por);
+				
+				ResponseHeaderOverrides override = new ResponseHeaderOverrides();
+				override.setContentType(mime);
+				GeneratePresignedUrlRequest urlRequest = new GeneratePresignedUrlRequest("encrypted-file-storage", fileID);
+				urlRequest.setExpiration(new Date(System.currentTimeMillis() + 360000000));
+				urlRequest.setResponseHeaders(override);
+				URL url = s3Client.generatePresignedUrl(urlRequest);
+				
+				mServiceAdapter.sendFile(mWithJabberID, file.getName(), file.length(), key, url.toString());
+				return url.toString();
+			}
+			catch (Exception ex) {
+				this.ex = ex;
+				Log.w(TAG, ex.getMessage(), ex);
+				return null;
+			}
+	    }
+
+	    protected void onPostExecute(String url) {
+	    	spinner.dismiss();
+	    	if (url == null) {
+	    		Toast.makeText(getBaseContext(), ex != null ? ex.getMessage() : "Error", Toast.LENGTH_LONG).show();
+	    	}
+	    	else {
+	    		Log.i(TAG, url);
+	    	}
+	    }
+	}
+
+	class DownloadFileTask extends AsyncTask<JSONObject, Void, String> {
+		private Crypto crypto;
+		private ProgressDialog spinner;
+		private Exception ex;
+		
+		public DownloadFileTask(Context ctx, Crypto crypto) {
+			super();
+			this.crypto = crypto;
+			spinner = new ProgressDialog(ctx);			
+		    spinner.setMessage(ctx.getString(R.string.rooms_uploading));
+		}
+		
+		@Override
+		protected void onPreExecute() {
+		    spinner.show();
+		}
+
+		@Override
+	    protected String doInBackground(JSONObject... fileInfo) {
+			InputStream input = null;
+	        ByteArrayOutputStream output = null;
+	        HttpURLConnection connection = null;
+	        try {
+		        String downloadLink = fileInfo[0].getString("download-link");
+		        String filename = fileInfo[0].getString("filename");
+		        String encryptionKey = fileInfo[0].getString("key");
+		        //String mimeType = fileInfo[0].getString("mime-type");
+	            URL url = new URL(downloadLink);
+	            connection = (HttpURLConnection) url.openConnection();
+	            connection.connect();
+
+	            if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
+	                throw new Exception("Server returned HTTP " + connection.getResponseCode()
+	                        + " " + connection.getResponseMessage());
+	            }
+
+	            input = connection.getInputStream();
+	            output = new ByteArrayOutputStream();
+	            byte data[] = new byte[4096];
+	            int count;
+	            while ((count = input.read(data)) != -1) {
+	                // allow canceling with back button
+	                if (isCancelled()) {
+	                    input.close();
+	                    return null;
+	                }
+	                output.write(data, 0, count);
+	            }
+	            File dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+	            String fullName = dir.getAbsolutePath() + File.separator + filename;
+	            FileOutputStream decryptedFile = new FileOutputStream(fullName);
+	            crypto.decryptStream(new ByteArrayInputStream(output.toByteArray()), decryptedFile, encryptionKey);
+	            
+	            return fullName;
+	        } 
+	        catch (Exception e) {
+	        	this.ex = e;
+	            return null;
+	        } 
+	        finally {
+	            try {
+	                if (output != null)
+	                    output.close();
+	                if (input != null)
+	                    input.close();
+	            } 
+	            catch (IOException ignored) {
+	            }
+	            if (connection != null)
+	                connection.disconnect();
+	        }
+		}
+
+	    protected void onPostExecute(String uri) {
+	    	spinner.dismiss();
+	    	if (uri == null) {
+	    		Toast.makeText(getBaseContext(), ex != null ? ex.getMessage() : "Error", Toast.LENGTH_LONG).show();
+	    	}
+	    	else {
+	    		Log.i(TAG, uri);
+	            Intent intent = new Intent();
+	            intent.setAction(android.content.Intent.ACTION_VIEW);
+	            intent.setDataAndType(Uri.fromFile(new File(uri)), "*/*");
+	            startActivity(intent); 
+	    	}
+	    }
 	}
 }

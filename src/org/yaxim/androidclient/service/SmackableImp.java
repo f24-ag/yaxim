@@ -107,6 +107,7 @@ import android.net.Uri;
 import android.preference.PreferenceManager;
 import android.util.Log;
 import de.f24.rooms.messages.ContactList;
+import de.f24.rooms.messages.FileMessage;
 import de.f24.rooms.messages.Invitation;
 import de.f24.rooms.messages.Participant;
 import de.f24.rooms.messages.PersonalInfo;
@@ -845,14 +846,14 @@ public class SmackableImp implements Smackable {
 			if (isAuthenticated()) {
 				if (!isRoomMessage) {
 					addChatMessageToDB(ChatConstants.OUTGOING, toJID, message, ChatConstants.DS_SENT_OR_READ,
-						System.currentTimeMillis(), newMessage.getPacketID(), toJID);
+						System.currentTimeMillis(), newMessage.getPacketID(), toJID, RoomsMessageType.TextMessage, null);
 					mXMPPConnection.sendPacket(newMessage);
 				}
 			} 
 			else {
 				// send offline -> store to DB
 				addChatMessageToDB(ChatConstants.OUTGOING, toJID, message, ChatConstants.DS_NEW,
-						System.currentTimeMillis(), newMessage.getPacketID(), toJID);
+						System.currentTimeMillis(), newMessage.getPacketID(), toJID, RoomsMessageType.TextMessage, null);
 			}
 		}
 		catch (Exception ex) {
@@ -1181,7 +1182,7 @@ public class SmackableImp implements Smackable {
 			}
 			else if (roomsMessage instanceof TextMessage) {
 				TextMessage textMessage = (TextMessage)roomsMessage;
-				boolean isNew = addChatMessageToDB(direction, fromJID, textMessage.getText(), is_new, ts, msg.getPacketID(), textMessage.getSender());
+				boolean isNew = addChatMessageToDB(direction, fromJID, textMessage.getText(), is_new, ts, msg.getPacketID(), textMessage.getSender(), RoomsMessageType.TextMessage, null);
 				if (direction == ChatConstants.INCOMING && isNew) {
 					mServiceCallBack.newMessage(fromJID, null, textMessage.getText(), false);
 				}
@@ -1283,9 +1284,16 @@ public class SmackableImp implements Smackable {
 			else if (roomsMessage instanceof TextMessage) {
 				TextMessage textMessage = (TextMessage)roomsMessage;
 				String text = textMessage.getText();
-				if (addChatMessageToDB(ChatConstants.INCOMING, roomID, text, 1, publishDate.getTime(), item.getId(), textMessage.getSender()) 
+				if (addChatMessageToDB(ChatConstants.INCOMING, roomID, text, 1, publishDate.getTime(), item.getId(), textMessage.getSender(), RoomsMessageType.TextMessage, null) 
 						&& !textMessage.getSender().equals(mConfig.jabberID)){
 					mServiceCallBack.newMessage(textMessage.getSender(), roomID, text, false);
+				}
+			}
+			else if (roomsMessage instanceof FileMessage) {
+				FileMessage fileMessage = (FileMessage)roomsMessage;
+				if (addChatMessageToDB(ChatConstants.INCOMING, roomID, fileMessage.getDescription(), 1, publishDate.getTime(), item.getId(), fileMessage.getSender(), RoomsMessageType.File, fileMessage.getBody().toString())
+						&& !fileMessage.getSender().equals(mConfig.jabberID)) {
+					mServiceCallBack.newMessage(fileMessage.getSender(), null, fileMessage.getDescription(), false);
 				}
 			}
 		}
@@ -1322,7 +1330,7 @@ public class SmackableImp implements Smackable {
 	}
 
 	private boolean addChatMessageToDB(int direction, String JID,
-			String message, int delivery_status, long ts, String packetID, String sender) {
+			String message, int delivery_status, long ts, String packetID, String sender, RoomsMessageType type, String extraData) {
 		ContentValues values = new ContentValues();
 		values.put(ChatConstants.DIRECTION, direction);
 		values.put(ChatConstants.JID, JID);
@@ -1331,6 +1339,8 @@ public class SmackableImp implements Smackable {
 		values.put(ChatConstants.DATE, ts);
 		values.put(ChatConstants.PACKET_ID, packetID);
 		values.put(ChatConstants.SENDER, sender);
+		values.put(ChatConstants.TYPE, type.ordinal());
+		values.put(ChatConstants.EXTRA_DATA, extraData);
 
 		if (mContentResolver.update(ChatProvider.CONTENT_URI, values,
 				ChatConstants.PACKET_ID + " = ?", new String[] { packetID }) == 0) {
@@ -1471,14 +1481,33 @@ public class SmackableImp implements Smackable {
 	
 			if (isAuthenticated()) {
 				addChatMessageToDB(ChatConstants.OUTGOING, KeyRetriever.ROOMS_SERVER, encryptedMsg, ChatConstants.DS_SENT_OR_READ,
-					System.currentTimeMillis(), newMessage.getPacketID(), KeyRetriever.ROOMS_SERVER);
+					System.currentTimeMillis(), newMessage.getPacketID(), KeyRetriever.ROOMS_SERVER, message.getType(), null);
 				mXMPPConnection.sendPacket(newMessage);
 			} 
 			else {
 				// send offline -> store to DB
 				addChatMessageToDB(ChatConstants.OUTGOING, KeyRetriever.ROOMS_SERVER, encryptedMsg, ChatConstants.DS_NEW,
-						System.currentTimeMillis(), newMessage.getPacketID(), KeyRetriever.ROOMS_SERVER);
+						System.currentTimeMillis(), newMessage.getPacketID(), KeyRetriever.ROOMS_SERVER, message.getType(), null);
 			}
+		}
+		catch (Exception ex) {
+			Log.e(TAG, "Failed to send control message", ex);
+		}
+	}
+
+	@Override
+	public void sendRoomMessage(String roomID, RoomsMessage message) {
+		try {
+			message.setSender(mConfig.jabberID);
+			List<String> recipients = new ArrayList<String>();
+			for (Participant p : getRoomParticipants(roomID)) {
+				recipients.add(p.getJid());
+			}
+			message.setRecipients(recipients);
+			String encryptedMsg = crypto.encryptMessage(message);
+			String payload = "<body>" + encryptedMsg + "</body>";
+			LeafNode roomNode = pubSub.getNode(roomID);
+			roomNode.send(new PayloadItem<SimplePayload>("msg_" + System.currentTimeMillis(), new SimplePayload(null, null, payload)));
 		}
 		catch (Exception ex) {
 			Log.e(TAG, "Failed to send control message", ex);

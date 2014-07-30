@@ -1,6 +1,6 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
 	<item android:id="@+id/menu_show_hide" android:title="@string/Menu_HideOff"
-		android:alphabeticShortcut="o"
+		android:alphabeticShortcut="o" android:visible="false"
 		android:icon="@android:drawable/ic_menu_delete" android:showAsAction="ifRoom"/>
 
 	<item android:id="@+id/menu_connect" android:title="@string/Menu_connect"

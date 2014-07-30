@@ -38,6 +38,7 @@ import android.provider.ContactsContract;
 import android.util.Log;
 import de.f24.rooms.messages.ContactSearch;
 import de.f24.rooms.messages.ContactSync;
+import de.f24.rooms.messages.FileMessage;
 import de.f24.rooms.messages.OpenRoomRequest;
 import de.f24.rooms.messages.Registration;
 import de.f24.rooms.messages.RegistrationRequest;
@@ -243,10 +244,21 @@ public class XMPPService extends GenericService {
 			}
 
 			@Override
-			public void sendFile(String jid, String fileName)
+			public void sendFile(String jabberID, String fileName, long size, String key, String url)
 					throws RemoteException {
 				if (mSmackable != null) {
-					mSmackable.sendFile(jid, fileName);
+					FileMessage message = (FileMessage)RoomsMessageFactory.getRoomsMessage(RoomsMessageType.File);
+					try {
+						message.setFilename(fileName);
+						message.setSize(size);
+						message.setKey(key);
+						message.setDownloadLink(url);
+						message.setDescription(fileName);
+						mSmackable.sendRoomMessage(jabberID, message);
+					}
+					catch (Exception ex) {
+						Log.e("JSON", ex.getMessage());
+					}
 				}
 			}
 			

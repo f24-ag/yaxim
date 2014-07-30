@@ -33,7 +33,6 @@ import org.yaxim.androidclient.util.StatusMode;
 import android.annotation.TargetApi;
 import android.app.AlertDialog;
 import android.content.ComponentName;
-import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -50,12 +49,10 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.os.RemoteException;
 import android.preference.PreferenceManager;
-import android.provider.ContactsContract;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.text.InputType;
 import android.util.Log;
-import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
@@ -71,10 +68,6 @@ import com.actionbarsherlock.app.SherlockFragmentActivity;
 import com.actionbarsherlock.view.Menu;
 import com.actionbarsherlock.view.Window;
 import com.nullwire.trace.ExceptionHandler;
-
-import de.f24.rooms.messages.ContactSync;
-import de.f24.rooms.messages.RoomsMessageFactory;
-import de.f24.rooms.messages.RoomsMessageType;
 
 public class MainWindow extends SherlockFragmentActivity {
 
@@ -485,29 +478,14 @@ public class MainWindow extends SherlockFragmentActivity {
 	public boolean onPrepareOptionsMenu(Menu menu) {
 		setMenuItem(menu, R.id.menu_connect, getConnectDisconnectIcon(),
 				getConnectDisconnectText());
-		setMenuItem(menu, R.id.menu_show_hide, getShowHideMenuIcon(),
-				getShowHideMenuText());
+		//setMenuItem(menu, R.id.menu_show_hide, getShowHideMenuIcon(),
+		//		getShowHideMenuText());
 		return true;
 	}
 
 	@Override
 	public boolean onOptionsItemSelected(com.actionbarsherlock.view.MenuItem item) {
 		return applyMainMenuChoice(item);
-	}
-
-	private int getShowHideMenuIcon() {
-		TypedValue tv = new TypedValue();
-		if (mConfig.showOffline) {
-			getTheme().resolveAttribute(R.attr.OnlineFriends, tv, true);
-			return tv.resourceId;
-		}
-		getTheme().resolveAttribute(R.attr.AllFriends, tv, true);
-		return tv.resourceId;
-	}
-
-	private String getShowHideMenuText() {
-		return mConfig.showOffline ? getString(R.string.Menu_HideOff)
-				: getString(R.string.Menu_ShowOff);
 	}
 
 	public StatusMode getStatusMode() {

@@ -2,6 +2,7 @@ package org.yaxim.androidclient;
 
 import org.jboss.aerogear.android.unifiedpush.MessageHandler;
 import org.yaxim.androidclient.data.YaximConfiguration;
+import org.yaxim.androidclient.util.PreferenceConstants;
 
 import android.app.ActivityManager;
 import android.app.ActivityManager.RunningServiceInfo;
@@ -16,6 +17,7 @@ import android.media.RingtoneManager;
 import android.os.Bundle;
 import android.os.PowerManager;
 import android.os.PowerManager.WakeLock;
+import android.preference.PreferenceManager;
 import android.util.Log;
 
 public class NotifyingHandler implements MessageHandler {
@@ -76,6 +78,8 @@ public class NotifyingHandler implements MessageHandler {
 			mNotification.setLatestEventInfo(context, context.getText(R.string.rooms_new_message), msg,	appIntent);
 
 			notificationManager.notify(0, mNotification);
+			PreferenceManager.getDefaultSharedPreferences(context).edit().putBoolean(PreferenceConstants.CONN_STARTUP, true).commit();
+
 		} 
 		finally {
 			mWakeLock.release();

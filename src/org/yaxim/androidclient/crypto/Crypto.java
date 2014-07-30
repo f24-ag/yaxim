@@ -25,9 +25,12 @@ import de.f24.rooms.messages.RoomsMessage;
 import de.f24.rooms.messages.RoomsMessageFactory;
 
 public class Crypto {
+	private static final int BUFFER_SIZE = 1048576;
+	
 	private KeyRetriever keyRetriever;
 	private Hash hash;
 	private Hex hex;
+	private Random random;
 
 	public KeyRetriever getKeyRetriever() {
 		return keyRetriever;
@@ -45,43 +48,34 @@ public class Crypto {
 		 return hash.sha256(value, hex);
 	}
 
-	public void encryptStream(InputStream in, OutputStream out,
-			String myJabberID, String otherJabberID) throws Exception {
-		Random random = new Random();
-		KeyPair myKeys = keyRetriever.loadKeys(myJabberID);
-		PublicKey otherKey = keyRetriever.loadPublicKey(myJabberID);
+	public void encryptStream(InputStream in, OutputStream out, String symmtericKey) throws Exception {
 		byte[] nonce = random.randomBytes(SodiumConstants.NONCE_BYTES);
 		out.write(nonce);
 
-		Box myBox = new Box(otherKey, myKeys.getPrivateKey());
-		byte[] buffer = new byte[1048576];
+		SecretBox box = new SecretBox(symmtericKey, hex);
+		byte[] buffer = new byte[BUFFER_SIZE];
 		int count;
 		while ((count = in.read(buffer)) > 0) {
-			byte[] encrypted = myBox.encrypt(nonce,
-					Util.slice(buffer, 0, count));
+			byte[] encrypted = box.encrypt(nonce, Util.slice(buffer, 0, count));
 			out.write(encrypted);
 		}
 	}
 
-	public void decryptStream(InputStream in, OutputStream out,
-			String myJabberID, String otherJabberID) throws Exception {
-		KeyPair myKeys = keyRetriever.loadKeys(myJabberID);
-		PublicKey otherKey = keyRetriever.loadPublicKey(myJabberID);
+	public void decryptStream(InputStream in, OutputStream out, String symmetricKey) throws Exception {
 		byte[] nonce = new byte[SodiumConstants.NONCE_BYTES];
 		in.read(nonce);
 
-		Box myBox = new Box(otherKey, myKeys.getPrivateKey());
-		byte[] buffer = new byte[1048576 + SodiumConstants.BOXZERO_BYTES];
+		SecretBox box = new SecretBox(symmetricKey, hex);
+		byte[] buffer = new byte[BUFFER_SIZE + SodiumConstants.BOXZERO_BYTES];
 		int count;
 		while ((count = in.read(buffer)) > 0) {
-			out.write(myBox.decrypt(nonce, Util.slice(buffer, 0, count)));
+			out.write(box.decrypt(nonce, Util.slice(buffer, 0, count)));
 		}
 	}
 
 	public String encryptMessage(RoomsMessage envelope) {
 		ByteArrayOutputStream output = new ByteArrayOutputStream();
 		try {
-			Random random = new Random();
 			String message = envelope.toString();
 			output.write(intToByteArray(2)); // version
 			output.write(intToByteArray(0)); // metadata
@@ -176,9 +170,15 @@ public class Crypto {
 		}
 	}
 
+	public String generateSymmetricKey() {
+		byte[] symmetricKey = random.randomBytes(SECRETKEY_BYTES);
+		return hex.encode(symmetricKey);
+	}
+
 	public Crypto(KeyRetriever keyRetriever) {
 		this.keyRetriever = keyRetriever;
 		hash = new Hash();
 		hex = new Hex();
+		random = new Random();
 	}
 }

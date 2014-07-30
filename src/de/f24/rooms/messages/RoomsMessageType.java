@@ -5,7 +5,8 @@ public enum RoomsMessageType {
 	RegistrationRequest(101), Registration(102), RegistrationConfirmation(103), 
 	PersonalInfo(201), ContactSync(204), ContactList(205), ContactSearch(206),  
 	OpenRoomRequest(301), Invitation(302), RoomsConfiguration(303), 
-	TextMessage(401), DeliveryReceipt(402), PushRequest(403);
+	TextMessage(401), DeliveryReceipt(402), PushRequest(403),
+	File(601);
 
 	private int id;
 

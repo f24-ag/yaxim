@@ -5,8 +5,9 @@ import java.io.FilenameFilter;
 import java.util.ArrayList;
 
 import org.yaxim.androidclient.R;
+import org.yaxim.androidclient.YaximApplication;
+import org.yaxim.androidclient.data.YaximConfiguration;
 
-import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.AlertDialog.Builder;
 import android.app.Dialog;
@@ -20,9 +21,10 @@ import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.ListAdapter;
 import android.widget.TextView;
-import android.widget.Toast;
 
-public class FileExplore extends Activity {
+import com.actionbarsherlock.app.SherlockActivity;
+
+public class FileExplore extends SherlockActivity {
 
 	// Stores names of traversed directories
 	ArrayList<String> str = new ArrayList<String>();
@@ -38,11 +40,14 @@ public class FileExplore extends Activity {
 	private static final int DIALOG_LOAD_FILE = 1000;
 
 	ListAdapter adapter;
+	YaximConfiguration mConfig;
 
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 
+		mConfig = YaximApplication.getConfig(this);
 		super.onCreate(savedInstanceState);
+		setTheme(mConfig.getTheme());
 
 		loadFileList();
 
@@ -211,6 +216,12 @@ public class FileExplore extends Activity {
 			break;
 		}
 		dialog = builder.show();
+		dialog.setOnCancelListener(new DialogInterface.OnCancelListener() {
+			@Override
+			public void onCancel(DialogInterface dialog) {
+				FileExplore.this.finish();
+			}
+		});
 		return dialog;
 	}
 

@@ -4,6 +4,7 @@ import java.util.ArrayList;
 
 import org.yaxim.androidclient.util.LogConstants;
 
+import de.f24.rooms.messages.RoomsMessageType;
 import android.content.ContentProvider;
 import android.content.ContentUris;
 import android.content.ContentValues;
@@ -196,7 +197,7 @@ public class ChatProvider extends ContentProvider {
 	private static class ChatDatabaseHelper extends SQLiteOpenHelper {
 
 		private static final String DATABASE_NAME = "yaxim.db";
-		private static final int DATABASE_VERSION = 6;
+		private static final int DATABASE_VERSION = 7;
 
 		public ChatDatabaseHelper(Context context) {
 			super(context, DATABASE_NAME, null, DATABASE_VERSION);
@@ -216,6 +217,8 @@ public class ChatProvider extends ContentProvider {
 					+ ChatConstants.MESSAGE + " TEXT,"
 					+ ChatConstants.DELIVERY_STATUS + " INTEGER,"
 					+ ChatConstants.PACKET_ID + " TEXT,"
+					+ ChatConstants.TYPE + " INTEGER,"
+					+ ChatConstants.EXTRA_DATA + " TEXT,"
 					+ ChatConstants.SENDER + " TEXT);");
 		}
 
@@ -231,6 +234,11 @@ public class ChatProvider extends ContentProvider {
 			case 5:
 				db.execSQL("ALTER TABLE " + TABLE_NAME + " ADD " + ChatConstants.SENDER + " TEXT");
 				db.execSQL("UPDATE " + TABLE_NAME + " SET " + ChatConstants.SENDER + " = " + ChatConstants.JID);
+				break;
+			case 6:
+				db.execSQL("ALTER TABLE " + TABLE_NAME + " ADD " + ChatConstants.TYPE + " INTEGER");
+				db.execSQL("UPDATE " + TABLE_NAME + " SET " + ChatConstants.TYPE + " = " + RoomsMessageType.TextMessage.ordinal());
+				db.execSQL("ALTER TABLE " + TABLE_NAME + " ADD " + ChatConstants.EXTRA_DATA + " TEXT");
 				break;
 			default:
 				db.execSQL("DROP TABLE IF EXISTS " + TABLE_NAME);
@@ -256,6 +264,8 @@ public class ChatProvider extends ContentProvider {
 		public static final String DELIVERY_STATUS = "read"; // SQLite can not rename columns, reuse old name
 		public static final String PACKET_ID = "pid";
 		public static final String SENDER = "sender";
+		public static final String TYPE = "type";
+		public static final String EXTRA_DATA = "extra_data";
 
 		// boolean mappings
 		public static final int INCOMING = 0;
@@ -272,6 +282,7 @@ public class ChatProvider extends ContentProvider {
 			tmpList.add(JID);
 			tmpList.add(MESSAGE);
 			tmpList.add(SENDER);
+			tmpList.add(TYPE);
 			return tmpList;
 		}
 

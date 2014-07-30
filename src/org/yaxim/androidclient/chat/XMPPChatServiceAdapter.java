@@ -46,9 +46,9 @@ public class XMPPChatServiceAdapter {
 		}
 	}
 
-	public void sendFile(String jabberID, String selectedFile) {
+	public void sendFile(String jabberID, String fileName, long size, String key, String url) {
 		try {
-			xmppServiceStub.sendFile(jabberID, selectedFile);
+			xmppServiceStub.sendFile(jabberID, fileName, size, key, url);
 		} catch (RemoteException e) {
 			e.printStackTrace();
 		}
