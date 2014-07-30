@@ -596,9 +596,9 @@ public class MainWindow extends SherlockFragmentActivity {
 
 		case android.R.id.home:
 		case R.id.menu_status:
-			new ChangeStatusDialog(this, StatusMode.fromString(mConfig.statusMode),
-					mConfig.statusMessage, mConfig.statusMessageHistory).show();
-			return true;
+			//new ChangeStatusDialog(this, StatusMode.fromString(mConfig.statusMode),
+			//		mConfig.statusMessage, mConfig.statusMessageHistory).show();
+			return false;
 
 		case R.id.menu_exit:
 			PreferenceManager.getDefaultSharedPreferences(this).edit().
@@ -891,11 +891,15 @@ public class MainWindow extends SherlockFragmentActivity {
 		.setPositiveButton(android.R.string.ok,
 				new DialogInterface.OnClickListener() {
 					public void onClick(DialogInterface dialog, int which) {
-						serviceAdapter.openRoom(null, input.getText().toString(), participants);
+						openRoom(input.getText().toString(), participants);
 					}
 				})
 		.setNegativeButton(android.R.string.cancel, null)
 		.create().show();
+	}
+
+	public void openRoom(String title, final Set<String> participants) {
+		serviceAdapter.openRoom(null, title, participants);
 	}
 	
 	private void registerDialog1() {

@@ -1,6 +1,7 @@
 package org.yaxim.androidclient;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 
@@ -9,11 +10,14 @@ import org.yaxim.androidclient.data.ChatProvider.ChatConstants;
 import org.yaxim.androidclient.data.RosterProvider;
 import org.yaxim.androidclient.data.RosterProvider.RosterConstants;
 import org.yaxim.androidclient.data.YaximConfiguration;
+import org.yaxim.androidclient.util.PreferenceConstants;
 import org.yaxim.androidclient.util.SimpleCursorTreeAdapter;
 import org.yaxim.androidclient.util.StatusMode;
 
+import android.app.AlertDialog;
 import android.content.ContentResolver;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.ContentObserver;
@@ -423,27 +427,31 @@ public class RosterTabFragment extends SherlockFragment {
 	
 	public boolean onChildClick(ExpandableListView parent, View v,
 			int groupPosition, int childPosition, long id) {
-
-		MainWindow mainWindow = (MainWindow)getActivity();
 		long packedPosition = ExpandableListView.getPackedPositionForChild(groupPosition, childPosition);
 		Cursor c = (Cursor)listView.getItemAtPosition(listView.getFlatListPosition(packedPosition));
-		String userJid = c.getString(c.getColumnIndexOrThrow(RosterConstants.JID));
-		String userName = c.getString(c.getColumnIndexOrThrow(RosterConstants.ALIAS));
-		Intent i = mainWindow.getIntent();
-		if (i.getAction() != null && i.getAction().equals(Intent.ACTION_SEND)) {
-			// delegate ACTION_SEND to child window and close self
-			mainWindow.startChatActivity(userJid, userName, i.getStringExtra(Intent.EXTRA_TEXT));
-			mainWindow.finish();
-		} 
-		else {
-			StatusMode s = StatusMode.values()[c.getInt(c.getColumnIndexOrThrow(RosterConstants.STATUS_MODE))];
-			if (s == StatusMode.subscribe)
-				mainWindow.rosterAddRequestedDialog(userJid,
-					c.getString(c.getColumnIndexOrThrow(RosterConstants.STATUS_MESSAGE)));
-			else
-				mainWindow.startChatActivity(userJid, userName, null);
-		}
+		final String userJid = c.getString(c.getColumnIndexOrThrow(RosterConstants.JID));
+		final String userName = c.getString(c.getColumnIndexOrThrow(RosterConstants.ALIAS));
+		
+		DialogInterface.OnClickListener dialogClickListener = new DialogInterface.OnClickListener() {
+		    @Override
+		    public void onClick(DialogInterface dialog, int which) {
+		        switch (which){
+		        case DialogInterface.BUTTON_POSITIVE:
+		    		SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(mainWindow);		
+		    		String title = sharedPreferences.getString(PreferenceConstants.NAME, "") + " / " + userName;
+					mainWindow.openRoom(title, Collections.singleton(userJid));
+		            break;
 
+		        case DialogInterface.BUTTON_NEGATIVE:
+		            //No button clicked
+		            break;
+		        }
+		    }
+		};
+
+		AlertDialog.Builder builder = new AlertDialog.Builder(mainWindow);
+		builder.setMessage(getString(R.string.rooms_singlechat, userName)).setPositiveButton(android.R.string.yes, dialogClickListener)
+		    .setNegativeButton(android.R.string.no, dialogClickListener).show();
 		return true;
 	}
 	

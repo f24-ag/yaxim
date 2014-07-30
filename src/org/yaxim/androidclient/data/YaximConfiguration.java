@@ -168,10 +168,10 @@ public class YaximConfiguration implements OnSharedPreferenceChangeListener {
 	}
 
 	public int getTheme() {
-		if (theme.equals("light")) {
-			return R.style.YaximLightTheme;
-		} else {
+		if (theme.equals("dark")) {
 			return R.style.YaximDarkTheme;
+		} else {
+			return R.style.YaximLightTheme;
 		}
 	}
 }

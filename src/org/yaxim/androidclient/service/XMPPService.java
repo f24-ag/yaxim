@@ -16,6 +16,7 @@ import org.yaxim.androidclient.data.RosterProvider;
 import org.yaxim.androidclient.data.RosterProvider.RoomsConstants;
 import org.yaxim.androidclient.exceptions.YaximXMPPException;
 import org.yaxim.androidclient.util.ConnectionState;
+import org.yaxim.androidclient.util.PreferenceConstants;
 import org.yaxim.androidclient.util.StatusMode;
 
 import android.app.AlarmManager;
@@ -26,6 +27,7 @@ import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
@@ -34,6 +36,7 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.os.RemoteCallbackList;
 import android.os.RemoteException;
+import android.preference.PreferenceManager;
 import android.provider.ContactsContract;
 import android.util.Log;
 import de.f24.rooms.messages.ContactSearch;
@@ -497,7 +500,8 @@ public class XMPPService extends GenericService {
 		if (cs == ConnectionState.ONLINE)
 			n.icon = R.drawable.ic_online;
 
-		String title = getString(R.string.conn_title, mConfig.jabberID);
+		SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);		
+		String title = getString(R.string.conn_title, sharedPreferences.getString(PreferenceConstants.NAME, ""));
 		String message = getStatusTitle(cs);
 		n.setLatestEventInfo(this, title, message, n.contentIntent);
 
@@ -608,7 +612,7 @@ public class XMPPService extends GenericService {
 		mSmackable.registerCallback(new XMPPServiceCallback() {
 			public void newMessage(String from, String roomID, String message, boolean silent_notification) {
 				logInfo("notification: " + from);
-				notifyClient(from, mSmackable.getNameForJID(from), roomID, message, !mIsBoundTo.contains(from) && !mIsBoundTo.contains(roomID), silent_notification, false);
+				notifyClient(from, mSmackable.getNameForJID(from, roomID), roomID, message, !mIsBoundTo.contains(from) && !mIsBoundTo.contains(roomID), silent_notification, false);
 			}
 
 			public void messageError(final String from, final String error, final boolean silent_notification) {
@@ -616,7 +620,7 @@ public class XMPPService extends GenericService {
 				mMainHandler.post(new Runnable() {
 					public void run() {
 						// work around Toast fallback for errors
-						notifyClient(from, mSmackable.getNameForJID(from), null, error,
+						notifyClient(from, mSmackable.getNameForJID(from, null), null, error,
 							!mIsBoundTo.contains(from), silent_notification, true);
 					}});
 				}

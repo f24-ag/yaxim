@@ -896,7 +896,17 @@ public class SmackableImp implements Smackable {
 		this.mServiceCallBack = null;
 	}
 	
-	public String getNameForJID(String jid) {
+	public String getNameForJID(String jid, String roomID) {
+		if (roomID != null) {
+			for (Participant p : getRoomParticipants(roomID)) {
+				if (jid.equals(p.getJid())) {
+					return p.getName();
+				}
+			}
+		}
+		if (jid.startsWith("control-client")) {
+			return "ROOMS"; // Hardcoded nickname for control client
+		}
 		if (this.mRoster != null && null != this.mRoster.getEntry(jid) && null != this.mRoster.getEntry(jid).getName() && this.mRoster.getEntry(jid).getName().length() > 0) {
 			return this.mRoster.getEntry(jid).getName();
 		} else {

@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
-		<item android:id="@+id/roster_contextmenu_contact_open_chat" android:visible="true"
-			android:enabled="true" android:orderInCategory="1"
+		<item android:id="@+id/roster_contextmenu_contact_open_chat" android:visible="false"
+			android:enabled="false" android:orderInCategory="1"
 			android:title="@string/roster_contextmenu_contact_open_chat">
 		</item>
 
-		<item android:id="@+id/roster_contextmenu_contact_mark_all_as_read" android:visible="true"
+		<item android:id="@+id/roster_contextmenu_contact_mark_all_as_read" android:visible="false"
 			android:enabled="true" android:orderInCategory="1"
 			android:title="@string/roster_contextmenu_contact_mark_all_as_read">
 		</item>
@@ -15,7 +15,7 @@
 			android:title="@string/roster_contextmenu_contact_rename">
 		</item>
 
-		<item android:id="@+id/roster_contextmenu_contact_request_auth" android:visible="true"
+		<item android:id="@+id/roster_contextmenu_contact_request_auth" android:visible="false"
 			android:enabled="true" android:orderInCategory="4"
 			android:title="@string/roster_contextmenu_contact_request_auth">
 		</item>
@@ -25,7 +25,7 @@
 			android:title="@string/roster_contextmenu_contact_change_group">
 		</item>
 
-		<item android:visible="true" android:enabled="true"
+		<item android:visible="false" android:enabled="true"
 			android:orderInCategory="2" android:id="@+id/roster_contextmenu_contact_delmsg"
 			android:title="@string/roster_contextmenu_contact_delmsg">
 		</item>
@@ -35,7 +35,7 @@
 			android:title="@string/roster_contextmenu_contact_delete">
 		</item>
 
-		<item android:visible="true" android:enabled="true"
+		<item android:visible="false" android:enabled="true"
 			android:orderInCategory="6" android:id="@+id/roster_contextmenu_assign_key"
 			android:title="@string/roster_contextmenu_assign_key">
 		</item>

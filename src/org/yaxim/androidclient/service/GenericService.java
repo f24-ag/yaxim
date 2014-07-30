@@ -3,6 +3,7 @@ package org.yaxim.androidclient.service;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.yaxim.androidclient.R;
 import org.yaxim.androidclient.chat.ChatWindow;
 import org.yaxim.androidclient.data.YaximConfiguration;
 import org.yaxim.androidclient.util.LogConstants;
@@ -20,10 +21,8 @@ import android.os.IBinder;
 import android.os.PowerManager;
 import android.os.PowerManager.WakeLock;
 import android.os.Vibrator;
-import android.preference.PreferenceManager;
 import android.util.Log;
 import android.widget.Toast;
-import org.yaxim.androidclient.R;
 
 public abstract class GenericService extends Service {
 

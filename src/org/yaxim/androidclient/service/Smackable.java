@@ -29,7 +29,7 @@ public interface Smackable {
 	void registerCallback(XMPPServiceCallback callBack);
 	void unRegisterCallback();
 	
-	String getNameForJID(String jid);
+	String getNameForJID(String jid, String roomID);
 	void sendFile(String jid, String fileName);
 	void sendControlMessage(RoomsMessage request);
 	void sendRoomMessage(String roomID, RoomsMessage request);

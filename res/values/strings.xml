@@ -312,5 +312,6 @@
 	<string name="rooms.fileName">File name:</string>
 	<string name="rooms.fileSize">Size:</string>
 	<string name="rooms.fileDescription">Description:</string>
-							
+	<string name="rooms.singlechat">Start chat with %s?</string>
+								
 </resources>

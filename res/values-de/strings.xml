@@ -253,4 +253,5 @@
 	<string name="rooms.fileName">Dateiname:</string>
 	<string name="rooms.fileSize">Größe:</string>
 	<string name="rooms.fileDescription">Beschreibung:</string>
+	<string name="rooms.singlechat">Gespräch mit %s anfangen?</string>
 </resources>
