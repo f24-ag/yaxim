@@ -1,5 +1,6 @@
 package org.yaxim.androidclient.preferences;
 
+import android.content.BroadcastReceiver;
 import android.content.Intent;
 import android.os.Bundle;
 
@@ -7,10 +8,14 @@ import com.actionbarsherlock.app.ActionBar;
 import com.actionbarsherlock.app.SherlockPreferenceActivity;
 
 import org.yaxim.androidclient.MainWindow;
+import org.yaxim.androidclient.NotifyingHandler;
 import org.yaxim.androidclient.R;
 import org.yaxim.androidclient.YaximApplication;
 
 public class MainPrefs extends SherlockPreferenceActivity {
+	
+	private BroadcastReceiver pushReceiver;
+	
 	public void onCreate(Bundle savedInstanceState) {
 		setTheme(YaximApplication.getConfig(this).getTheme());
 		super.onCreate(savedInstanceState);
@@ -34,4 +39,17 @@ public class MainPrefs extends SherlockPreferenceActivity {
 		}
 	}
 
+	@Override
+	protected void onResume() {
+		super.onResume();
+		
+		pushReceiver = NotifyingHandler.registerDynamicBroadcastReceiver(this);
+	}
+	
+	@Override
+	protected void onPause() {
+		NotifyingHandler.unregisterDynamicBroadcastReceiver(this, pushReceiver);
+		
+		super.onPause();
+	}
 }

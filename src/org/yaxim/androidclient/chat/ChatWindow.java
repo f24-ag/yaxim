@@ -22,6 +22,7 @@ import java.util.UUID;
 
 import org.json.JSONObject;
 import org.yaxim.androidclient.MainWindow;
+import org.yaxim.androidclient.NotifyingHandler;
 import org.yaxim.androidclient.R;
 import org.yaxim.androidclient.YaximApplication;
 import org.yaxim.androidclient.crypto.Crypto;
@@ -38,6 +39,7 @@ import org.yaxim.androidclient.util.StatusMode;
 
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
+import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.ContentResolver;
 import android.content.ContentValues;
@@ -126,6 +128,7 @@ public class ChatWindow extends SherlockListActivity implements OnKeyListener,
 	private int mChatFontSize;
 	private YaximConfiguration mConfig;
 	private Map<String, String> participants;
+	private BroadcastReceiver pushReceiver;
 	
 
 	@Override
@@ -229,7 +232,17 @@ public class ChatWindow extends SherlockListActivity implements OnKeyListener,
 	protected void onResume() {
 		super.onResume();
 		updateContactStatus();
+		
+		pushReceiver = NotifyingHandler.registerDynamicBroadcastReceiver(this);
 	}
+	
+	@Override
+	protected void onPause() {
+		NotifyingHandler.unregisterDynamicBroadcastReceiver(this, pushReceiver);
+		
+		super.onPause();
+	}
+	
 
 	@Override
 	public void onWindowFocusChanged(boolean hasFocus) {

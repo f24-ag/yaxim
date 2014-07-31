@@ -32,6 +32,7 @@ import org.yaxim.androidclient.util.StatusMode;
 
 import android.annotation.TargetApi;
 import android.app.AlertDialog;
+import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.ContentValues;
 import android.content.Context;
@@ -87,6 +88,8 @@ public class MainWindow extends SherlockFragmentActivity {
 	
 	private RosterTabFragment rosterTab;
 	private RoomsTabFragment roomsTab;
+	
+	private BroadcastReceiver pushReceiver;
 
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
@@ -135,6 +138,8 @@ public class MainWindow extends SherlockFragmentActivity {
 
 		YaximApplication.getApp(this).mMTM.unbindDisplayActivity(this);
 		unbindXMPPService();
+		
+		NotifyingHandler.unregisterDynamicBroadcastReceiver(this, pushReceiver);
 	}
 
 	@Override
@@ -163,6 +168,8 @@ public class MainWindow extends SherlockFragmentActivity {
 			}});
 		// handle SEND action
 		handleSendIntent();
+		
+		pushReceiver = NotifyingHandler.registerDynamicBroadcastReceiver(this);
 	}
 
 	public void handleSendIntent() {

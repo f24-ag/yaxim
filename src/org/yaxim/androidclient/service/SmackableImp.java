@@ -1243,7 +1243,7 @@ public class SmackableImp implements Smackable {
 				sendControlMessage(message);
 				
 				// Register for push
-				YaximApplication.getApp(mService).registerForGMC(mService, confirm.getJid());
+				YaximApplication.getApp(mService).registerForGCM(mService, confirm.getJid());
 				
 				// Sync address book
 				((XMPPService)mService).syncContacts();
