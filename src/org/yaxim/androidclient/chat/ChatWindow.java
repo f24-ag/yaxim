@@ -39,6 +39,7 @@ import org.yaxim.androidclient.util.StatusMode;
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.content.ComponentName;
+import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -66,6 +67,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnKeyListener;
 import android.view.ViewGroup;
+import android.webkit.MimeTypeMap;
 import android.widget.AdapterView;
 import android.widget.AdapterView.AdapterContextMenuInfo;
 import android.widget.AdapterView.OnItemClickListener;
@@ -87,6 +89,7 @@ import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.ResponseHeaderOverrides;
+import com.google.common.io.Files;
 
 import de.f24.rooms.messages.RoomsMessageType;
 
@@ -674,7 +677,7 @@ public class ChatWindow extends SherlockListActivity implements OnKeyListener,
 	
 	@Override
 	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-		if (data == null) {
+		if (data == null || requestCode != R.id.menu_send_file) {
 			return;
 		}
 		String selectedFile = data.getStringExtra("selectedFile");
@@ -808,7 +811,9 @@ public class ChatWindow extends SherlockListActivity implements OnKeyListener,
 				AmazonS3Client s3Client = new AmazonS3Client(new BasicAWSCredentials("", ""));
 				ObjectMetadata metadata = new ObjectMetadata();
 				metadata.setContentLength(out.size());
-				String mime = URLConnection.guessContentTypeFromStream(new FileInputStream(file));//MimeTypeMap.getFileExtensionFromUrl(selectedFile);
+
+				String mime = getMimeTypeFromFile(file, null);
+
 				metadata.setContentType(mime);
 				PutObjectRequest por = new PutObjectRequest("encrypted-file-storage", fileID, new ByteArrayInputStream(out.toByteArray()), metadata); 
 				s3Client.putObject(por);
@@ -920,10 +925,10 @@ public class ChatWindow extends SherlockListActivity implements OnKeyListener,
 	    		Toast.makeText(getBaseContext(), ex != null ? ex.getMessage() : "Error", Toast.LENGTH_LONG).show();
 	    	}
 	    	else {
-	    		Log.i(TAG, uri);
-	            Intent intent = new Intent();
+	    		Log.i(TAG, uri);Intent intent = new Intent();
+	    		File file = new File(uri);
 	            intent.setAction(android.content.Intent.ACTION_VIEW);
-	            intent.setDataAndType(Uri.fromFile(new File(uri)), "*/*");
+	            intent.setDataAndType(Uri.fromFile(file), getMimeTypeFromFile(file, "*/*"));
 	            startActivity(intent); 
 	    	}
 	    }
@@ -958,5 +963,18 @@ public class ChatWindow extends SherlockListActivity implements OnKeyListener,
 			})
 		.setNegativeButton(android.R.string.cancel, null)
 		.create().show();
+	}
+	
+	private String getMimeTypeFromFile(File file, String fallback) {
+		Uri uri = Uri.fromFile(file);
+		MimeTypeMap mimeTypeMap = MimeTypeMap.getSingleton();
+		String ext = MimeTypeMap.getFileExtensionFromUrl(uri.toString());
+		String mime = mimeTypeMap.getMimeTypeFromExtension(ext);
+		
+		if (mime == null) {
+			mime = fallback;
+		}
+		
+		return mime;
 	}
 }
