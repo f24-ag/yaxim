@@ -805,7 +805,7 @@ public class ChatWindow extends SherlockListActivity implements OnKeyListener,
 
 				crypto.encryptStream(in, out, key);
 				
-				AmazonS3Client s3Client = new AmazonS3Client(new BasicAWSCredentials("AKIAJDZ75WEA54YRPJTA", "CfIol2A6gc4S0mN2IUhM8XpRUP8HN0h1m7tF17he"));
+				AmazonS3Client s3Client = new AmazonS3Client(new BasicAWSCredentials("", ""));
 				ObjectMetadata metadata = new ObjectMetadata();
 				metadata.setContentLength(out.size());
 				String mime = URLConnection.guessContentTypeFromStream(new FileInputStream(file));//MimeTypeMap.getFileExtensionFromUrl(selectedFile);
