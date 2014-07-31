@@ -61,4 +61,12 @@ public class XMPPChatServiceAdapter {
 			e.printStackTrace();
 		}
 	}
+
+	public void sendTaskResponse(String selectedOption) {
+		try {
+			xmppServiceStub.sendTaskResponse(selectedOption);
+		} catch (RemoteException e) {
+			e.printStackTrace();
+		}
+	}
 }

@@ -250,6 +250,7 @@
 	<string name="rooms.uploading">Die Datei wird verschlüsselt und hochgeladen...</string>
 	<string name="rooms.downloading">Die Datei wird heruntergeladen und entschlüsselt...</string>
 	<string name="rooms.file">Anhang</string>
+	<string name="rooms.task">Aufgabe</string>
 	<string name="rooms.fileName">Dateiname:</string>
 	<string name="rooms.fileSize">Größe:</string>
 	<string name="rooms.fileDescription">Beschreibung:</string>

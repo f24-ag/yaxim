@@ -47,6 +47,7 @@ import de.f24.rooms.messages.Registration;
 import de.f24.rooms.messages.RegistrationRequest;
 import de.f24.rooms.messages.RoomsMessageFactory;
 import de.f24.rooms.messages.RoomsMessageType;
+import de.f24.rooms.messages.TaskResponse;
 
 public class XMPPService extends GenericService {
 
@@ -270,6 +271,21 @@ public class XMPPService extends GenericService {
 					throws RemoteException {
 				if (mSmackable != null) {
 					mSmackable.sendControlMessage(createOpenRoomRequest(parentRoomID, topic, participants));
+				}
+			}
+
+			@Override
+			public void sendTaskResponse(String selectedOption)
+					throws RemoteException {
+				if (mSmackable != null) {
+					TaskResponse message = (TaskResponse)RoomsMessageFactory.getRoomsMessage(RoomsMessageType.TaskResponse);
+					try {
+						message.setText(selectedOption);
+						mSmackable.sendControlMessage(message);
+					}
+					catch (Exception ex) {
+						Log.e("JSON", ex.getMessage());
+					}
 				}
 			}
 		};

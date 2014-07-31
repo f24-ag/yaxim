@@ -117,6 +117,7 @@ import de.f24.rooms.messages.RoomConfiguration;
 import de.f24.rooms.messages.RoomsMessage;
 import de.f24.rooms.messages.RoomsMessageFactory;
 import de.f24.rooms.messages.RoomsMessageType;
+import de.f24.rooms.messages.TaskMessage;
 import de.f24.rooms.messages.TextMessage;
 
 public class SmackableImp implements Smackable {
@@ -792,6 +793,7 @@ public class SmackableImp implements Smackable {
 		values.put(ChatConstants.DELIVERY_STATUS, ChatConstants.DS_NEW);
 		values.put(ChatConstants.DATE, System.currentTimeMillis());
 		values.put(ChatConstants.SENDER, myJID);
+		values.put(ChatConstants.TYPE, RoomsMessageType.TextMessage.ordinal());
 
 		cr.insert(ChatProvider.CONTENT_URI, values);
 	}
@@ -1304,6 +1306,13 @@ public class SmackableImp implements Smackable {
 				if (addChatMessageToDB(ChatConstants.INCOMING, roomID, fileMessage.getDescription(), 1, publishDate.getTime(), item.getId(), fileMessage.getSender(), RoomsMessageType.File, fileMessage.getBody().toString())
 						&& !fileMessage.getSender().equals(mConfig.jabberID)) {
 					mServiceCallBack.newMessage(fileMessage.getSender(), null, fileMessage.getDescription(), false);
+				}
+			}
+			else if (roomsMessage instanceof TaskMessage) {
+				TaskMessage task = (TaskMessage)roomsMessage;
+				if (addChatMessageToDB(ChatConstants.INCOMING, roomID, task.getText(), 1, publishDate.getTime(), item.getId(), task.getSender(), RoomsMessageType.Task, task.getBody().toString())
+						&& !task.getSender().equals(mConfig.jabberID)) {
+					mServiceCallBack.newMessage(task.getSender(), null, task.getText(), false);
 				}
 			}
 		}

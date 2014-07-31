@@ -6,6 +6,7 @@ public enum RoomsMessageType {
 	PersonalInfo(201), ContactSync(204), ContactList(205), ContactSearch(206),  
 	OpenRoomRequest(301), Invitation(302), RoomsConfiguration(303), 
 	TextMessage(401), DeliveryReceipt(402), PushRequest(403),
+	Task(501), TaskResponse(502),
 	File(601);
 
 	private int id;

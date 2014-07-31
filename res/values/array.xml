@@ -5,4 +5,6 @@
 		<item>SYSTEM</item>
 		<item>ALWAYS</item>
 	</string-array>
+	<item type="id" name="TAG_CHAT_ROW_ID"/>
+	<item type="id" name="TAG_CHAT_ROW_EXTRA_DATA"/>
 </resources>

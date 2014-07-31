@@ -30,6 +30,10 @@ public class RoomsMessageFactory {
 			return new ContactList();
 		case ContactSearch:
 			return new ContactSearch();
+		case Task:
+			return new TaskMessage();
+		case TaskResponse:
+			return new TaskResponse();
 		case File:
 			return new FileMessage();
 		default:

@@ -7,7 +7,6 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLConnection;
@@ -180,11 +179,17 @@ public class ChatWindow extends SherlockListActivity implements OnKeyListener,
 		getListView().setOnItemClickListener(new OnItemClickListener() {
 			@Override
 			public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-				if (view.getTag() instanceof JSONObject) { // Extra data in JSON format
+				if (view.getTag(R.id.TAG_CHAT_ROW_EXTRA_DATA) != null) { // Extra data in JSON format
 					try {
-						JSONObject extraData = (JSONObject)view.getTag();
-						Crypto crypto = YaximApplication.getApp(getApplicationContext()).mCrypto;
-						new DownloadFileTask(ChatWindow.this, crypto).execute(extraData);
+						JSONObject extraData = (JSONObject)view.getTag(R.id.TAG_CHAT_ROW_EXTRA_DATA);
+						if (extraData.has("text")) { // HACK!!!
+							int _id = (Integer)view.getTag(R.id.TAG_CHAT_ROW_ID);
+							showTaskDialog(_id, extraData);
+						}
+						else {
+							Crypto crypto = YaximApplication.getApp(getApplicationContext()).mCrypto;
+							new DownloadFileTask(ChatWindow.this, crypto).execute(extraData);
+						}
 					}
 					catch (Exception ex) {
 						Log.e(TAG, ex.getMessage());
@@ -407,11 +412,28 @@ public class ChatWindow extends SherlockListActivity implements OnKeyListener,
 				((TextView) row.findViewById(R.id.fileNameText)).setText(fileInfo.getString("filename"));
 				((TextView) row.findViewById(R.id.fileSizeText)).setText(fileInfo.getString("size"));
 				((TextView) row.findViewById(R.id.fileDescriptionText)).setText(fileInfo.getString("description"));
-				row.setTag(fileInfo);
+				row.setTag(R.id.TAG_CHAT_ROW_EXTRA_DATA, fileInfo);
 			}
 			catch (Exception ex) {
 				Log.e(TAG, ex.getMessage());
 			}
+			return row;
+		}
+
+		public View getTaskView(RoomsMessageType type, String from, String date, String text, String extraData) {
+			LayoutInflater inflater = getLayoutInflater();
+			View row = inflater.inflate(R.layout.taskrow, null);
+			((TextView) row.findViewById(R.id.chat_date)).setText(date);
+			((TextView) row.findViewById(R.id.chat_from)).setText(from);
+			try {
+				JSONObject taskInfo = new JSONObject(extraData);
+				((TextView) row.findViewById(R.id.taskText)).setText(text);
+				row.setTag(R.id.TAG_CHAT_ROW_EXTRA_DATA, taskInfo);
+			}
+			catch (Exception ex) {
+				Log.e(TAG, ex.getMessage());
+			}
+			row.setBackgroundColor(type == RoomsMessageType.Task ? 0xffffcccc : 0xffccffcc);
 			return row;
 		}
 
@@ -447,6 +469,12 @@ public class ChatWindow extends SherlockListActivity implements OnKeyListener,
 			if (type == RoomsMessageType.File) {
 				String extraData = cursor.getString(cursor.getColumnIndex(ChatProvider.ChatConstants.EXTRA_DATA));
 				return getFileDownloadView(from, date, extraData);
+			}
+			else if (type == RoomsMessageType.Task || type == RoomsMessageType.TaskResponse) {
+				String extraData = cursor.getString(cursor.getColumnIndex(ChatProvider.ChatConstants.EXTRA_DATA));
+				View taskView = getTaskView(type, from, date, message, extraData);
+				taskView.setTag(R.id.TAG_CHAT_ROW_ID, _id);
+				return taskView;
 			}
 			
 			View row = null;
@@ -899,5 +927,36 @@ public class ChatWindow extends SherlockListActivity implements OnKeyListener,
 	            startActivity(intent); 
 	    	}
 	    }
+	}
+	
+	private void showTaskDialog(final int id, JSONObject taskData) throws Exception {
+		
+		final List<String> options = new ArrayList<String>();
+		final String text = taskData.getString("text"); 
+		for(int i = 0; i < taskData.getJSONArray("options").length(); i++){
+		    options.add(taskData.getJSONArray("options").getString(i));
+		}		
+		new AlertDialog.Builder(this)
+			.setTitle(text)
+			.setSingleChoiceItems(options.toArray(new String[]{}), 0, new DialogInterface.OnClickListener() {
+           @Override
+           public void onClick(DialogInterface dialog, int which) {
+           }
+       })
+       .setPositiveButton(android.R.string.ok,
+			new DialogInterface.OnClickListener() {
+				public void onClick(DialogInterface dialog, int which) {
+					int selectedPosition = ((AlertDialog)dialog).getListView().getCheckedItemPosition();
+					String selectedOption = options.get(selectedPosition);
+					ContentValues values = new ContentValues();
+					values.put(ChatConstants.TYPE, RoomsMessageType.TaskResponse.ordinal());
+					values.put(ChatConstants.MESSAGE, text + " [" + selectedOption + "]");
+					getContentResolver().update(ChatProvider.CONTENT_URI, values,
+							ChatProvider.ChatConstants._ID + " = ?", new String[]{ String.valueOf(id) });
+					mServiceAdapter.sendTaskResponse(selectedOption);
+				}
+			})
+		.setNegativeButton(android.R.string.cancel, null)
+		.create().show();
 	}
 }

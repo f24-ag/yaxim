@@ -6,4 +6,5 @@ interface IXMPPChatService {
 	void clearNotifications(String Jid);
 	void sendFile(String jabberID, String fileName, long size, String key, String url);
 	void openRoom(String parentRoomID, String topic, in String[] participants);
+	void sendTaskResponse(String selectedOption);
 }
