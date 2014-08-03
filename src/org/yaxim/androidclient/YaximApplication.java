@@ -59,7 +59,7 @@ public class YaximApplication extends Application {
 		return getApp(ctx).mConfig;
 	}
 
-	public void registerForGMC(Context ctx, String jid){
+	public void registerForGCM(Context ctx, String jid){
         Registrations registrations = new Registrations();
         try {
             PushConfig config = new PushConfig(new URI(UNIFIED_PUSH_URL), GCM_SENDER_ID);  // 2

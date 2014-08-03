@@ -1,10 +1,12 @@
 package org.yaxim.androidclient.preferences;
 
+import org.yaxim.androidclient.NotifyingHandler;
 import org.yaxim.androidclient.YaximApplication;
 import org.yaxim.androidclient.exceptions.YaximXMPPAdressMalformedException;
 import org.yaxim.androidclient.util.PreferenceConstants;
 import org.yaxim.androidclient.util.XMPPHelper;
 
+import android.content.BroadcastReceiver;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
@@ -27,6 +29,8 @@ public class AccountPrefs extends SherlockPreferenceActivity {
 
 	private EditTextPreference prefPrio;
 	private EditTextPreference prefAccountID;
+	
+	private BroadcastReceiver pushReceiver;
 
 	public void onCreate(Bundle savedInstanceState) {
 		setTheme(YaximApplication.getConfig(this).getTheme());
@@ -131,4 +135,17 @@ public class AccountPrefs extends SherlockPreferenceActivity {
 		}
 	}
 
+	@Override
+	protected void onResume() {
+		super.onResume();
+		
+		pushReceiver = NotifyingHandler.registerDynamicBroadcastReceiver(this);
+	}
+	
+	@Override
+	protected void onPause() {
+		NotifyingHandler.unregisterDynamicBroadcastReceiver(this, pushReceiver);
+		
+		super.onPause();
+	}
 }

@@ -118,6 +118,13 @@
     		</intent-filter>
     		<meta-data android:name="DEFAULT_MESSAGE_HANDLER_KEY" android:value="org.yaxim.androidclient.NotifyingHandler"/>
 		</receiver>
+		
+        <receiver android:name="org.yaxim.androidclient.NotifyingHandler"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="de.f24.rooms.messages.push.broadcast" />
+            </intent-filter>
+        </receiver>
     </application>
 
 </manifest>

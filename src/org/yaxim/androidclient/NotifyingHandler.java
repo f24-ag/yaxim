@@ -2,25 +2,21 @@ package org.yaxim.androidclient;
 
 import org.jboss.aerogear.android.unifiedpush.MessageHandler;
 import org.yaxim.androidclient.data.YaximConfiguration;
-import org.yaxim.androidclient.util.PreferenceConstants;
 
-import android.app.ActivityManager;
-import android.app.ActivityManager.RunningServiceInfo;
-import android.app.Notification;
+import android.app.Activity;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.graphics.Color;
-import android.media.AudioManager;
-import android.media.RingtoneManager;
+import android.content.IntentFilter;
 import android.os.Bundle;
-import android.os.PowerManager;
-import android.os.PowerManager.WakeLock;
-import android.preference.PreferenceManager;
+import android.support.v4.app.NotificationCompat;
 import android.util.Log;
 
-public class NotifyingHandler implements MessageHandler {
+public class NotifyingHandler extends BroadcastReceiver implements MessageHandler {
+	
+	private static final String PUSH_BROADCAST = "de.f24.rooms.messages.push.broadcast";
 
 	public NotifyingHandler() {
 		super();
@@ -28,62 +24,12 @@ public class NotifyingHandler implements MessageHandler {
 	
 	@Override
 	public void onMessage(Context context, Bundle message) {
-		// Check if the app is already running
-	    ActivityManager activityManager = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
-	    for (RunningServiceInfo service : activityManager.getRunningServices(Integer.MAX_VALUE)) {
-	        if (service.process.equals(context.getPackageName().toString()) && service.started) {
-	            return;
-	        }
-	    }
 		
-		YaximConfiguration mConfig = YaximApplication.getConfig(context);
-
-		NotificationManager notificationManager = (NotificationManager) context
-				.getSystemService(Context.NOTIFICATION_SERVICE);
-		WakeLock mWakeLock = ((PowerManager) context
-				.getSystemService(Context.POWER_SERVICE)).newWakeLock(
-				PowerManager.PARTIAL_WAKE_LOCK, "Push");
-		Notification mNotification = new Notification();
-		Intent mNotificationIntent = new Intent(context, MainWindow.class);
-
-		String msg = message.getString("alert");
-		Log.i("PUSH Notification", msg);
-		mWakeLock.acquire();
-
-		try {
-			try {
-				RingtoneManager.getRingtone(context, mConfig.notifySound)
-						.play();
-			} catch (NullPointerException e) {
-				// ignore NPE when ringtone was not found
-			}
-			// mNotificationIntent.setData();
-			// mNotificationIntent.putExtra(ChatWindow.INTENT_EXTRA_USERNAME,
-			// fromUserId);
-			mNotificationIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-
-			mNotification.sound = mConfig.notifySound;
-			mNotification.audioStreamType = AudioManager.STREAM_NOTIFICATION;
-			mNotification.defaults |= Notification.DEFAULT_VIBRATE;
-			mNotification.flags |= Notification.FLAG_AUTO_CANCEL;
-			mNotification.icon = R.drawable.icon;
-			mNotification.sound = mConfig.notifySound;
-			mNotification.tickerText = msg;
-			mNotification.ledARGB = Color.MAGENTA;
-			mNotification.ledOnMS = 300;
-			mNotification.ledOffMS = 1000;
-			mNotification.flags |= Notification.FLAG_SHOW_LIGHTS;
-
-			PendingIntent appIntent = PendingIntent.getActivity(context, 0,	mNotificationIntent, 0);
-			mNotification.setLatestEventInfo(context, context.getText(R.string.rooms_new_message), msg,	appIntent);
-
-			notificationManager.notify(0, mNotification);
-			PreferenceManager.getDefaultSharedPreferences(context).edit().putBoolean(PreferenceConstants.CONN_STARTUP, true).commit();
-
-		} 
-		finally {
-			mWakeLock.release();
-		}
+		Log.d("PUSH", "Push received by service...");
+		
+		Intent broadcastIntent = new Intent(PUSH_BROADCAST);
+		broadcastIntent.putExtras(message);
+		context.sendOrderedBroadcast(broadcastIntent, null);
 	}
 
     @Override
@@ -95,4 +41,56 @@ public class NotifyingHandler implements MessageHandler {
     public void onError() {
         // handle GoogleCloudMessaging.MESSAGE_TYPE_SEND_ERROR
     }
+    
+	@Override
+	public void onReceive(Context context, Intent intent) {
+		
+		Log.d("PUSH", "Push received by service again, showing notification!");
+		
+		YaximConfiguration mConfig = YaximApplication.getConfig(context);
+		Bundle message = intent.getExtras();
+		
+		Intent mainIntent = new Intent(context, MainWindow.class);
+        PendingIntent notify = PendingIntent.getActivity(context, 99, mainIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+		
+		NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+		NotificationCompat.Builder builder = new NotificationCompat.Builder(context)
+			.setSmallIcon(R.drawable.icon)
+			.setContentTitle(context.getString(R.string.app_name))
+			.setSound(mConfig.notifySound)
+			.setAutoCancel(true)
+			.setOngoing(false)
+			.setContentText(message.getString("alert"));
+		
+		builder.setContentIntent(notify);
+        notificationManager.notify(99, builder.getNotification());
+	}
+    
+    public static BroadcastReceiver registerDynamicBroadcastReceiver(Activity activity) {
+    	
+    	BroadcastReceiver receiver = new BroadcastReceiver() {
+			
+			@Override
+			public void onReceive(Context context, Intent intent) {
+				Log.d("PUSH", "Push received by activity, broadcast aborted!");
+				this.abortBroadcast();
+			}
+			
+    	};
+    	
+    	IntentFilter filter = new IntentFilter(PUSH_BROADCAST);
+    	filter.setPriority(10);
+		
+		activity.registerReceiver(receiver, filter);
+		
+		return receiver;
+    }
+    
+    public static void unregisterDynamicBroadcastReceiver(Activity activity, BroadcastReceiver receiver) {
+    	if (receiver != null) {
+    		activity.unregisterReceiver(receiver);
+    	}
+    }
+
+
 }

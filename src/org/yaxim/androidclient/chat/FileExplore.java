@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FilenameFilter;
 import java.util.ArrayList;
 
+import org.yaxim.androidclient.NotifyingHandler;
 import org.yaxim.androidclient.R;
 import org.yaxim.androidclient.YaximApplication;
 import org.yaxim.androidclient.data.YaximConfiguration;
@@ -11,6 +12,7 @@ import org.yaxim.androidclient.data.YaximConfiguration;
 import android.app.AlertDialog;
 import android.app.AlertDialog.Builder;
 import android.app.Dialog;
+import android.content.BroadcastReceiver;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
@@ -41,6 +43,8 @@ public class FileExplore extends SherlockActivity {
 
 	ListAdapter adapter;
 	YaximConfiguration mConfig;
+	
+	private BroadcastReceiver pushReceiver;
 
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
@@ -54,6 +58,20 @@ public class FileExplore extends SherlockActivity {
 		showDialog(DIALOG_LOAD_FILE);
 		Log.d(TAG, path.getAbsolutePath());
 
+	}
+	
+	@Override
+	protected void onResume() {
+		super.onResume();
+		
+		pushReceiver = NotifyingHandler.registerDynamicBroadcastReceiver(this);
+	}
+	
+	@Override
+	protected void onPause() {
+		NotifyingHandler.unregisterDynamicBroadcastReceiver(this, pushReceiver);
+		
+		super.onPause();
 	}
 
 	private void loadFileList() {
