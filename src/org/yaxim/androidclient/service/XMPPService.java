@@ -215,13 +215,8 @@ public class XMPPService extends GenericService {
 			}
 		}
 		ContactSync sync = (ContactSync)RoomsMessageFactory.getRoomsMessage(RoomsMessageType.ContactSync);
-		try {
-			sync.setHashes(phones);
-			mSmackable.sendControlMessage(sync);
-		}
-		catch (JSONException ex) {
-			Log.e("JSON", ex.getMessage());
-		}
+		sync.setHashes(phones);
+		mSmackable.sendControlMessage(sync);
 	}
 
 	private void createServiceChatStub() {
@@ -282,13 +277,8 @@ public class XMPPService extends GenericService {
 					throws RemoteException {
 				if (mSmackable != null) {
 					TaskResponse message = (TaskResponse)RoomsMessageFactory.getRoomsMessage(RoomsMessageType.TaskResponse);
-					try {
-						message.setText(selectedOption);
-						return mSmackable.sendControlMessage(message);
-					}
-					catch (Exception ex) {
-						Log.e("JSON", ex.getMessage());
-					}
+					message.setAnswer(selectedOption);
+					return mSmackable.sendControlMessage(message);
 				}
 				return null;
 			}
@@ -323,16 +313,11 @@ public class XMPPService extends GenericService {
 			}
 		}
 		OpenRoomRequest request = new OpenRoomRequest();
-		try {
-			request.setRoomName(roomName);
-			List<String> lstParticipants = new ArrayList<String>();
-			lstParticipants.addAll(Arrays.asList(participants));
-			lstParticipants.add(mConfig.jabberID);
-			request.setParticipants(lstParticipants);
-		}
-		catch (JSONException ex) {
-			Log.e("JSON", ex.getMessage());
-		}
+		request.setRoomName(roomName);
+		List<String> lstParticipants = new ArrayList<String>();
+		lstParticipants.addAll(Arrays.asList(participants));
+		lstParticipants.add(mConfig.jabberID);
+		request.setParticipants(lstParticipants);
 		return request;
 	}
 
@@ -441,27 +426,17 @@ public class XMPPService extends GenericService {
 			public void sendRegistrationMessage1(String phoneNumber)
 					throws RemoteException {
 				RegistrationRequest request = new RegistrationRequest();
-				try {
-					request.setPhoneNumber(phoneNumber);
-					mSmackable.sendControlMessage(request);
-				}
-				catch (JSONException ex) {
-					Log.e("JSON", ex.getMessage());
-				}
+				request.setPhoneNumber(phoneNumber);
+				mSmackable.sendControlMessage(request);
 			}
 
 			@Override
 			public void sendRegistrationMessage2(String code, String publicKey)
 					throws RemoteException {
 				Registration registration = new Registration();
-				try {
-					registration.setConfirmationCode(code);
-					registration.setPublicKey(publicKey);
-					mSmackable.sendControlMessage(registration);
-				}
-				catch (JSONException ex) {
-					Log.e("JSON", ex.getMessage());
-				}
+				registration.setConfirmationCode(code);
+				//registration.setPublicKey(publicKey);
+				mSmackable.sendControlMessage(registration);
 			}
 
 			@Override
@@ -472,13 +447,8 @@ public class XMPPService extends GenericService {
 			@Override
 			public void searchContact(String name) throws RemoteException {
 				ContactSearch search = (ContactSearch)RoomsMessageFactory.getRoomsMessage(RoomsMessageType.ContactSearch);
-				try {
-					search.setQuery(name);
-					mSmackable.sendControlMessage(search);
-				}
-				catch (JSONException ex) {
-					Log.e("JSON", ex.getMessage());
-				}
+				search.setQuery(name);
+				mSmackable.sendControlMessage(search);
 			}
 		};
 	}
