@@ -1189,7 +1189,7 @@ public class SmackableImp implements Smackable {
 			return;
 		}
 		try {
-			RoomsMessage roomsMessage = crypto.decryptMessage(msg.getBody(), mConfig.jabberID);
+			RoomsMessage roomsMessage = crypto.decryptMessage(msg.getBody(), mConfig.jabberID, fromJID, null);
 			if (roomsMessage == null) {
 				return; 
 			}
@@ -1214,7 +1214,7 @@ public class SmackableImp implements Smackable {
 				
 				upsertParticipants(invitation.getRoomID(), invitation.getParticipants());
 				for (Participant p : invitation.getParticipants()) {
-					crypto.getKeyRetriever().savePublicKey(p.getJid(), p.getPublicKey());
+					crypto.getKeyAccessor().savePublicKey(p.getJid(), p.getPublicKey());
 				}
 				mServiceCallBack.rosterChanged();
 
@@ -1259,7 +1259,7 @@ public class SmackableImp implements Smackable {
 					values.put(RosterConstants.STATUS_MESSAGE, "");
 					values.put(RosterConstants.GROUP, "");
 					upsertRoster(values, p.getJid());
-					crypto.getKeyRetriever().savePublicKey(p.getJid(), p.getPublicKey());
+					crypto.getKeyAccessor().savePublicKey(p.getJid(), p.getPublicKey());
 				}
 				mServiceCallBack.rosterChanged();
 			}
@@ -1274,46 +1274,48 @@ public class SmackableImp implements Smackable {
 		String xml = payload.toXML();
 		Log.d(TAG, xml);
 		String encryptedMessage = xml.substring(xml.indexOf('>') + 1, xml.lastIndexOf('<'));
-		RoomsMessage roomsMessage = crypto.decryptMessage(encryptedMessage, mConfig.jabberID);
-		if (roomsMessage != null) try {
-			if (roomsMessage instanceof RoomConfiguration) { // Room configuration changed
-				RoomConfiguration configuration = (RoomConfiguration)roomsMessage;
-				final ContentValues values = new ContentValues();
-				values.put(RoomsConstants.ID, configuration.getRoomID());
-				values.put(RoomsConstants.NAME, configuration.getRoomName());
-				values.put(RoomsConstants.STATUS, StatusMode.chat.ordinal());
-				values.put(RoomsConstants.CREATED, publishDate.getTime());
-				values.put(RoomsConstants.TOPIC, "");
-				values.put(RoomsConstants.OWNER, configuration.getSender());
-				values.put(RoomsConstants.LOGGER, "");
-				upsertRoom(values, configuration.getRoomID());
-				
-				upsertParticipants(configuration.getRoomID(), configuration.getParticipants());
-				for (Participant p : configuration.getParticipants()) {
-					crypto.getKeyRetriever().savePublicKey(p.getJid(), p.getPublicKey());
+		try {
+			RoomsMessage roomsMessage = crypto.decryptMessage(encryptedMessage, mConfig.jabberID, null, roomID);
+			if (roomsMessage != null) {
+				if (roomsMessage instanceof RoomConfiguration) { // Room configuration changed
+					RoomConfiguration configuration = (RoomConfiguration)roomsMessage;
+					final ContentValues values = new ContentValues();
+					values.put(RoomsConstants.ID, configuration.getRoomID());
+					values.put(RoomsConstants.NAME, configuration.getRoomName());
+					values.put(RoomsConstants.STATUS, StatusMode.chat.ordinal());
+					values.put(RoomsConstants.CREATED, publishDate.getTime());
+					values.put(RoomsConstants.TOPIC, "");
+					values.put(RoomsConstants.OWNER, configuration.getSender());
+					values.put(RoomsConstants.LOGGER, "");
+					upsertRoom(values, configuration.getRoomID());
+					
+					upsertParticipants(configuration.getRoomID(), configuration.getParticipants());
+					for (Participant p : configuration.getParticipants()) {
+						crypto.getKeyAccessor().savePublicKey(p.getJid(), p.getPublicKey());
+					}
+					mServiceCallBack.rosterChanged();
 				}
-				mServiceCallBack.rosterChanged();
-			}
-			else if (roomsMessage instanceof TextMessage) {
-				TextMessage textMessage = (TextMessage)roomsMessage;
-				String text = textMessage.getText();
-				if (addChatMessageToDB(ChatConstants.INCOMING, roomID, text, 1, publishDate.getTime(), item.getId(), textMessage.getSender(), RoomsMessageType.TextMessage, null) 
-						&& !textMessage.getSender().equals(mConfig.jabberID)){
-					mServiceCallBack.newMessage(textMessage.getSender(), roomID, text, false);
+				else if (roomsMessage instanceof TextMessage) {
+					TextMessage textMessage = (TextMessage)roomsMessage;
+					String text = textMessage.getText();
+					if (addChatMessageToDB(ChatConstants.INCOMING, roomID, text, 1, publishDate.getTime(), item.getId(), textMessage.getSender(), RoomsMessageType.TextMessage, null) 
+							&& !textMessage.getSender().equals(mConfig.jabberID)){
+						mServiceCallBack.newMessage(textMessage.getSender(), roomID, text, false);
+					}
 				}
-			}
-			else if (roomsMessage instanceof FileMessage) {
-				FileMessage fileMessage = (FileMessage)roomsMessage;
-				if (addChatMessageToDB(ChatConstants.INCOMING, roomID, fileMessage.getDescription(), 1, publishDate.getTime(), item.getId(), fileMessage.getSender(), RoomsMessageType.File, fileMessage.getBody().toString())
-						&& !fileMessage.getSender().equals(mConfig.jabberID)) {
-					mServiceCallBack.newMessage(fileMessage.getSender(), roomID, fileMessage.getDescription(), false);
+				else if (roomsMessage instanceof FileMessage) {
+					FileMessage fileMessage = (FileMessage)roomsMessage;
+					if (addChatMessageToDB(ChatConstants.INCOMING, roomID, fileMessage.getDescription(), 1, publishDate.getTime(), item.getId(), fileMessage.getSender(), RoomsMessageType.File, fileMessage.getBody().toString())
+							&& !fileMessage.getSender().equals(mConfig.jabberID)) {
+						mServiceCallBack.newMessage(fileMessage.getSender(), roomID, fileMessage.getDescription(), false);
+					}
 				}
-			}
-			else if (roomsMessage instanceof TaskMessage) {
-				TaskMessage task = (TaskMessage)roomsMessage;
-				if (addChatMessageToDB(ChatConstants.INCOMING, roomID, task.getText(), 1, publishDate.getTime(), item.getId(), task.getSender(), RoomsMessageType.Task, task.getBody().toString())
-						&& !task.getSender().equals(mConfig.jabberID)) {
-					mServiceCallBack.newMessage(task.getSender(), roomID, task.getText(), false);
+				else if (roomsMessage instanceof TaskMessage) {
+					TaskMessage task = (TaskMessage)roomsMessage;
+					if (addChatMessageToDB(ChatConstants.INCOMING, roomID, task.getText(), 1, publishDate.getTime(), item.getId(), task.getSender(), RoomsMessageType.Task, task.getBody().toString())
+							&& !task.getSender().equals(mConfig.jabberID)) {
+						mServiceCallBack.newMessage(task.getSender(), roomID, task.getText(), false);
+					}
 				}
 			}
 		}

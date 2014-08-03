@@ -1,6 +1,5 @@
 package org.yaxim.androidclient.dialogs;
 
-import org.abstractj.kalium.keys.KeyPair;
 import org.yaxim.androidclient.MainWindow;
 import org.yaxim.androidclient.R;
 import org.yaxim.androidclient.XMPPRosterServiceAdapter;
@@ -66,8 +65,8 @@ public class FirstStartDialog extends AlertDialog implements DialogInterface.OnC
 		case BUTTON_POSITIVE:
 			verifyAndSavePreferences();
 			try {
-				KeyPair keyPair = YaximApplication.getApp(getContext()).mCrypto.generateKeys("tmp");
-				mServiceAdapter.sendRegistrationMessage2(mSMSCode.getText().toString(), keyPair.getPublicKey().toString());
+				String[] keyPair = YaximApplication.getApp(getContext()).mCrypto.generateKeys("tmp");
+				mServiceAdapter.sendRegistrationMessage2(mSMSCode.getText().toString(), keyPair[1]);
 			} catch (Exception e) {
 				Log.e("Registration", "Registration failed", e);
 				Toast.makeText(getContext(), e.getMessage(), Toast.LENGTH_SHORT).show();

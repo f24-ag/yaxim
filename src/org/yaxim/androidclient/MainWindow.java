@@ -7,7 +7,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.abstractj.kalium.keys.PublicKey;
 import org.yaxim.androidclient.IXMPPRosterCallback.Stub;
 import org.yaxim.androidclient.crypto.Crypto;
 import org.yaxim.androidclient.crypto.KeyRetriever;
@@ -314,8 +313,8 @@ public class MainWindow extends SherlockFragmentActivity {
 		final EditText inputText = new EditText(this);
 		final Crypto crypto = YaximApplication.getApp(getApplicationContext()).mCrypto;
 		try {
-			PublicKey key = crypto.getKeyRetriever().loadPublicKey(jabberID);
-			inputText.setText(key.toString());
+			String key = crypto.getKeyAccessor().getPublicKey(jabberID);
+			inputText.setText(key);
 		}
 		catch (Exception ex) {
 			inputText.setText("--");
@@ -328,7 +327,7 @@ public class MainWindow extends SherlockFragmentActivity {
 			new DialogInterface.OnClickListener() {
 				public void onClick(DialogInterface dialog, int which) {
 					try {
-						crypto.getKeyRetriever().savePublicKey(jabberID, inputText.getText().toString());
+						crypto.getKeyAccessor().savePublicKey(jabberID, inputText.getText().toString());
 					}
 					catch (Exception ex) {
 						ex.printStackTrace();

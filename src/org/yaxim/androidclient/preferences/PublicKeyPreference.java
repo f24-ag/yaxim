@@ -2,7 +2,7 @@ package org.yaxim.androidclient.preferences;
 
 import org.abstractj.kalium.keys.KeyPair;
 import org.yaxim.androidclient.YaximApplication;
-import org.yaxim.androidclient.crypto.KeyRetriever;
+import org.yaxim.androidclient.crypto.KeyAccessor;
 import org.yaxim.androidclient.util.PreferenceConstants;
 
 import android.content.ClipData;
@@ -17,11 +17,11 @@ import android.widget.Toast;
 
 public class PublicKeyPreference extends DialogPreference {
 	
-	private KeyRetriever keyRetriever;
+	private KeyAccessor keyAccessor;
 
 	public PublicKeyPreference(Context context, AttributeSet attrs) {
 		super(context, attrs);
-		keyRetriever = YaximApplication.getApp(context).mCrypto.getKeyRetriever();
+		keyAccessor = YaximApplication.getApp(context).mCrypto.getKeyAccessor();
 		this.setOnPreferenceClickListener(new OnPreferenceClickListener() {
 			@Override
 			public boolean onPreferenceClick(Preference preference) {
@@ -36,7 +36,7 @@ public class PublicKeyPreference extends DialogPreference {
 		if (DialogInterface.BUTTON_POSITIVE == which) {
 			String JID = this.getSharedPreferences().getString(PreferenceConstants.JID, "");
 			try {
-				KeyPair keyPair = keyRetriever.loadKeys(JID);
+				KeyPair keyPair = keyAccessor.loadKeys(JID);
 				ClipboardManager ClipMan = (ClipboardManager) getContext().getSystemService(Context.CLIPBOARD_SERVICE);
 				ClipData clip = ClipData.newPlainText("key", keyPair.getPublicKey().toString());
 			    ClipMan.setPrimaryClip(clip);
@@ -63,7 +63,7 @@ public class PublicKeyPreference extends DialogPreference {
 	private void readPublicKey() {
 		final String JID = PublicKeyPreference.this.getSharedPreferences().getString(PreferenceConstants.JID, "");
 		try {
-			KeyPair keyPair = keyRetriever.loadKeys(JID);
+			KeyPair keyPair = keyAccessor.loadKeys(JID);
 			setDialogMessage(keyPair.getPublicKey().toString());
 		}
 		catch (Exception ex) {

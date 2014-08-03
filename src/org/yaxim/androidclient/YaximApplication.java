@@ -8,7 +8,7 @@ import org.jboss.aerogear.android.unifiedpush.PushConfig;
 import org.jboss.aerogear.android.unifiedpush.PushRegistrar;
 import org.jboss.aerogear.android.unifiedpush.Registrations;
 import org.yaxim.androidclient.crypto.Crypto;
-import org.yaxim.androidclient.crypto.DBKeyRetriever;
+import org.yaxim.androidclient.crypto.KeyAccessor;
 import org.yaxim.androidclient.data.YaximConfiguration;
 
 import android.app.Application;
@@ -48,7 +48,7 @@ public class YaximApplication extends Application {
 		mConfig = new YaximConfiguration(PreferenceManager
 				.getDefaultSharedPreferences(this));
 		//mCrypto = new Crypto(new FileKeyRetriever(this));
-		mCrypto = new Crypto(new DBKeyRetriever(getContentResolver()));
+		mCrypto = new Crypto(new KeyAccessor(getContentResolver()));
 	}
 	
 	public static YaximApplication getApp(Context ctx) {
