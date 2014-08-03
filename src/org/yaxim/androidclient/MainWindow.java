@@ -19,7 +19,6 @@ import org.yaxim.androidclient.data.RosterProvider.RoomsConstants;
 import org.yaxim.androidclient.data.RosterProvider.RosterConstants;
 import org.yaxim.androidclient.data.YaximConfiguration;
 import org.yaxim.androidclient.dialogs.AddRosterItemDialog;
-import org.yaxim.androidclient.dialogs.ChangeStatusDialog;
 import org.yaxim.androidclient.dialogs.FirstStartDialog;
 import org.yaxim.androidclient.dialogs.GroupNameView;
 import org.yaxim.androidclient.preferences.AccountPrefs;
@@ -32,6 +31,7 @@ import org.yaxim.androidclient.util.StatusMode;
 
 import android.annotation.TargetApi;
 import android.app.AlertDialog;
+import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.ContentValues;
 import android.content.Context;
@@ -87,6 +87,8 @@ public class MainWindow extends SherlockFragmentActivity {
 	
 	private RosterTabFragment rosterTab;
 	private RoomsTabFragment roomsTab;
+	
+	private BroadcastReceiver pushReceiver;
 
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
@@ -135,6 +137,8 @@ public class MainWindow extends SherlockFragmentActivity {
 
 		YaximApplication.getApp(this).mMTM.unbindDisplayActivity(this);
 		unbindXMPPService();
+		
+		NotifyingHandler.unregisterDynamicBroadcastReceiver(this, pushReceiver);
 	}
 
 	@Override
@@ -163,6 +167,8 @@ public class MainWindow extends SherlockFragmentActivity {
 			}});
 		// handle SEND action
 		handleSendIntent();
+		
+		pushReceiver = NotifyingHandler.registerDynamicBroadcastReceiver(this);
 	}
 
 	public void handleSendIntent() {
@@ -384,8 +390,11 @@ public class MainWindow extends SherlockFragmentActivity {
 		ExpandableListContextMenuInfo contextMenuInfo = (ExpandableListContextMenuInfo) item
 				.getMenuInfo();
 		long packedPosition = contextMenuInfo.packedPosition;
+		if (rosterTab == null) {
+			rosterTab = (RosterTabFragment)getActiveTab();
+		}
 
-		if (rosterTab.isChild(packedPosition)) {
+		if (rosterTab != null && rosterTab.isChild(packedPosition)) {
 
 			String userJid = rosterTab.getPackedItemRow(packedPosition, RosterConstants.JID);
 			String userName = rosterTab.getPackedItemRow(packedPosition, RosterConstants.ALIAS);

@@ -47,6 +47,7 @@ import de.f24.rooms.messages.Registration;
 import de.f24.rooms.messages.RegistrationRequest;
 import de.f24.rooms.messages.RoomsMessageFactory;
 import de.f24.rooms.messages.RoomsMessageType;
+import de.f24.rooms.messages.TaskMessage;
 import de.f24.rooms.messages.TaskResponse;
 
 public class XMPPService extends GenericService {
@@ -248,7 +249,7 @@ public class XMPPService extends GenericService {
 			}
 
 			@Override
-			public void sendFile(String jabberID, String fileName, long size, String key, String url)
+			public String sendFile(String jabberID, String fileName, long size, String key, String url)
 					throws RemoteException {
 				if (mSmackable != null) {
 					FileMessage message = (FileMessage)RoomsMessageFactory.getRoomsMessage(RoomsMessageType.File);
@@ -258,35 +259,56 @@ public class XMPPService extends GenericService {
 						message.setKey(key);
 						message.setDownloadLink(url);
 						message.setDescription(fileName);
-						mSmackable.sendRoomMessage(jabberID, message);
+						return mSmackable.sendRoomMessage(jabberID, message);
 					}
 					catch (Exception ex) {
 						Log.e("JSON", ex.getMessage());
 					}
 				}
+				return null;
 			}
 			
 			@Override
-			public void openRoom(String parentRoomID, String topic, String[] participants)
+			public String openRoom(String parentRoomID, String topic, String[] participants)
 					throws RemoteException {
 				if (mSmackable != null) {
-					mSmackable.sendControlMessage(createOpenRoomRequest(parentRoomID, topic, participants));
+					return mSmackable.sendControlMessage(createOpenRoomRequest(parentRoomID, topic, participants));
 				}
+				return null;
 			}
 
 			@Override
-			public void sendTaskResponse(String selectedOption)
+			public String sendTaskResponse(String selectedOption)
 					throws RemoteException {
 				if (mSmackable != null) {
 					TaskResponse message = (TaskResponse)RoomsMessageFactory.getRoomsMessage(RoomsMessageType.TaskResponse);
 					try {
 						message.setText(selectedOption);
-						mSmackable.sendControlMessage(message);
+						return mSmackable.sendControlMessage(message);
 					}
 					catch (Exception ex) {
 						Log.e("JSON", ex.getMessage());
 					}
 				}
+				return null;
+			}
+
+			@Override
+			public String sendTask(String roomID, String text, String recipient)
+					throws RemoteException {
+				if (mSmackable != null) {
+					TaskMessage message = (TaskMessage)RoomsMessageFactory.getRoomsMessage(RoomsMessageType.Task);
+					try {
+						message.setRecipients(Arrays.asList(recipient));
+						message.setText(text);
+						message.setOptions(Arrays.asList("Accept", "Reject", "Done"));
+						return mSmackable.sendRoomMessage(roomID, message);
+					}
+					catch (Exception ex) {
+						Log.e("JSON", ex.getMessage());
+					}
+				}
+				return null;
 			}
 		};
 	}

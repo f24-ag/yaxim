@@ -14,14 +14,13 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 
 import org.json.JSONObject;
 import org.yaxim.androidclient.MainWindow;
+import org.yaxim.androidclient.NotifyingHandler;
 import org.yaxim.androidclient.R;
 import org.yaxim.androidclient.YaximApplication;
 import org.yaxim.androidclient.crypto.Crypto;
@@ -38,7 +37,9 @@ import org.yaxim.androidclient.util.StatusMode;
 
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
+import android.content.BroadcastReceiver;
 import android.content.ComponentName;
+import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -66,6 +67,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnKeyListener;
 import android.view.ViewGroup;
+import android.webkit.MimeTypeMap;
 import android.widget.AdapterView;
 import android.widget.AdapterView.AdapterContextMenuInfo;
 import android.widget.AdapterView.OnItemClickListener;
@@ -87,6 +89,7 @@ import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.ResponseHeaderOverrides;
+import com.google.common.io.Files;
 
 import de.f24.rooms.messages.RoomsMessageType;
 
@@ -123,6 +126,7 @@ public class ChatWindow extends SherlockListActivity implements OnKeyListener,
 	private int mChatFontSize;
 	private YaximConfiguration mConfig;
 	private Map<String, String> participants;
+	private BroadcastReceiver pushReceiver;
 	
 
 	@Override
@@ -226,7 +230,17 @@ public class ChatWindow extends SherlockListActivity implements OnKeyListener,
 	protected void onResume() {
 		super.onResume();
 		updateContactStatus();
+		
+		pushReceiver = NotifyingHandler.registerDynamicBroadcastReceiver(this);
 	}
+	
+	@Override
+	protected void onPause() {
+		NotifyingHandler.unregisterDynamicBroadcastReceiver(this, pushReceiver);
+		
+		super.onPause();
+	}
+	
 
 	@Override
 	public void onWindowFocusChanged(boolean hasFocus) {
@@ -674,7 +688,7 @@ public class ChatWindow extends SherlockListActivity implements OnKeyListener,
 	
 	@Override
 	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-		if (data == null) {
+		if (data == null || requestCode != R.id.menu_send_file) {
 			return;
 		}
 		String selectedFile = data.getStringExtra("selectedFile");
@@ -693,7 +707,6 @@ public class ChatWindow extends SherlockListActivity implements OnKeyListener,
 	private void startGroupChatStep1() {
 		final List<String> jids = new ArrayList<String>();
 		final List<String> names = new ArrayList<String>();
-		final Set<String> selectedJids = new HashSet<String>();
 		Cursor c = getContentResolver().query(RosterProvider.PARTICIPANTS_URI, new String[] {  ParticipantConstants._ID, ParticipantConstants.JID, ParticipantConstants.NAME }, 
 				ParticipantConstants.ROOM + " = ? and " + ParticipantConstants.JID + " != ?", 
 				new String[] { mWithJabberID, mConfig.jabberID }, ParticipantConstants.NAME);
@@ -702,36 +715,29 @@ public class ChatWindow extends SherlockListActivity implements OnKeyListener,
 			names.add(c.getString(2));
 		}
 		new AlertDialog.Builder(this)
-			.setTitle(R.string.rooms_participants)
-			.setMultiChoiceItems(names.toArray(new String[]{}), null, new DialogInterface.OnMultiChoiceClickListener() {
-               @Override
-               public void onClick(DialogInterface dialog, int which, boolean isChecked) {
-                   if (isChecked) {
-                       selectedJids.add(jids.get(which));
-                   } else {
-                       selectedJids.remove(jids.get(which));
-                   }
-               }
-           })
-		.setPositiveButton(android.R.string.ok,
+			.setTitle(R.string.rooms_taskRecipient)
+			.setSingleChoiceItems(names.toArray(new String[]{}), -1, null)
+			.setPositiveButton(android.R.string.ok,
 				new DialogInterface.OnClickListener() {
 					public void onClick(DialogInterface dialog, int which) {
-						startGroupChatStep2(selectedJids);
+						int selectedPosition = ((AlertDialog)dialog).getListView().getCheckedItemPosition();
+						String selectedParticipant = jids.get(selectedPosition);
+						startTaskStep2(selectedParticipant);
 					}
 				})
 		.setNegativeButton(android.R.string.cancel, null)
 		.create().show();
 	}
 	
-	private void startGroupChatStep2(final Set<String> participants) {
+	private void startTaskStep2(final String participant) {
 		final EditText input = new EditText(this);
 		new AlertDialog.Builder(this)
-		.setTitle(R.string.rooms_title)
+		.setTitle(R.string.rooms_taskTitle)
 		.setView(input)
 		.setPositiveButton(android.R.string.ok,
 				new DialogInterface.OnClickListener() {
 					public void onClick(DialogInterface dialog, int which) {
-						mServiceAdapter.openRoom(mWithJabberID, input.getText().toString(), participants);
+						mServiceAdapter.sendTask(mWithJabberID, input.getText().toString(), participant);
 					}
 				})
 		.setNegativeButton(android.R.string.cancel, null)
@@ -805,10 +811,12 @@ public class ChatWindow extends SherlockListActivity implements OnKeyListener,
 
 				crypto.encryptStream(in, out, key);
 				
-				AmazonS3Client s3Client = new AmazonS3Client(new BasicAWSCredentials("", ""));
+				AmazonS3Client s3Client = new AmazonS3Client(new BasicAWSCredentials("AKIAJ4H7OKTG6VJDC6OA", "ccRZK175YVVSfMrK0vCPgvcWbh81gYnaiFlg/yxb"));
 				ObjectMetadata metadata = new ObjectMetadata();
 				metadata.setContentLength(out.size());
-				String mime = URLConnection.guessContentTypeFromStream(new FileInputStream(file));//MimeTypeMap.getFileExtensionFromUrl(selectedFile);
+
+				String mime = getMimeTypeFromFile(file, null);
+
 				metadata.setContentType(mime);
 				PutObjectRequest por = new PutObjectRequest("encrypted-file-storage", fileID, new ByteArrayInputStream(out.toByteArray()), metadata); 
 				s3Client.putObject(por);
@@ -920,10 +928,10 @@ public class ChatWindow extends SherlockListActivity implements OnKeyListener,
 	    		Toast.makeText(getBaseContext(), ex != null ? ex.getMessage() : "Error", Toast.LENGTH_LONG).show();
 	    	}
 	    	else {
-	    		Log.i(TAG, uri);
-	            Intent intent = new Intent();
+	    		Log.i(TAG, uri);Intent intent = new Intent();
+	    		File file = new File(uri);
 	            intent.setAction(android.content.Intent.ACTION_VIEW);
-	            intent.setDataAndType(Uri.fromFile(new File(uri)), "*/*");
+	            intent.setDataAndType(Uri.fromFile(file), getMimeTypeFromFile(file, "*/*"));
 	            startActivity(intent); 
 	    	}
 	    }
@@ -958,5 +966,18 @@ public class ChatWindow extends SherlockListActivity implements OnKeyListener,
 			})
 		.setNegativeButton(android.R.string.cancel, null)
 		.create().show();
+	}
+	
+	private String getMimeTypeFromFile(File file, String fallback) {
+		Uri uri = Uri.fromFile(file);
+		MimeTypeMap mimeTypeMap = MimeTypeMap.getSingleton();
+		String ext = MimeTypeMap.getFileExtensionFromUrl(uri.toString());
+		String mime = mimeTypeMap.getMimeTypeFromExtension(ext);
+		
+		if (mime == null) {
+			mime = fallback;
+		}
+		
+		return mime;
 	}
 }

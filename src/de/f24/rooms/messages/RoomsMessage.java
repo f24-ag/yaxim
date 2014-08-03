@@ -44,13 +44,18 @@ public abstract class RoomsMessage {
 		return jsonMessage.getJSONObject("body");
 	}
 
-	public List<String> getRecipients() throws JSONException {
-		List<String> receipients = new ArrayList<String>();
-		for (int i = 0; i < getHeader().getJSONArray("recipients").length(); i++) {
-			receipients.add(getHeader().getJSONArray("recipients")
-					.getJSONObject(i).getString("jid"));
+	public List<String> getRecipients() {
+		try {
+			List<String> receipients = new ArrayList<String>();
+			for (int i = 0; i < getHeader().getJSONArray("recipients").length(); i++) {
+				receipients.add(getHeader().getJSONArray("recipients")
+						.getJSONObject(i).getString("jid"));
+			}
+			return receipients;
 		}
-		return receipients;
+		catch (JSONException ex) {
+			return null;
+		}
 	}
 
 	public void setRecipients(List<String> recipients) throws JSONException {

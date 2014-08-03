@@ -515,7 +515,8 @@ public class SmackableImp implements Smackable {
 	public void removeRosterItem(String user) throws YaximXMPPException {
 		debugLog("removeRosterItem(" + user + ")");
 
-		tryToRemoveRosterEntry(user);
+		// tryToRemoveRosterEntry(user);
+		deleteRosterEntryFromDB(user);
 		mServiceCallBack.rosterChanged();
 	}
 
@@ -1243,7 +1244,7 @@ public class SmackableImp implements Smackable {
 				sendControlMessage(message);
 				
 				// Register for push
-				YaximApplication.getApp(mService).registerForGMC(mService, confirm.getJid());
+				YaximApplication.getApp(mService).registerForGCM(mService, confirm.getJid());
 				
 				// Sync address book
 				((XMPPService)mService).syncContacts();
@@ -1305,14 +1306,14 @@ public class SmackableImp implements Smackable {
 				FileMessage fileMessage = (FileMessage)roomsMessage;
 				if (addChatMessageToDB(ChatConstants.INCOMING, roomID, fileMessage.getDescription(), 1, publishDate.getTime(), item.getId(), fileMessage.getSender(), RoomsMessageType.File, fileMessage.getBody().toString())
 						&& !fileMessage.getSender().equals(mConfig.jabberID)) {
-					mServiceCallBack.newMessage(fileMessage.getSender(), null, fileMessage.getDescription(), false);
+					mServiceCallBack.newMessage(fileMessage.getSender(), roomID, fileMessage.getDescription(), false);
 				}
 			}
 			else if (roomsMessage instanceof TaskMessage) {
 				TaskMessage task = (TaskMessage)roomsMessage;
 				if (addChatMessageToDB(ChatConstants.INCOMING, roomID, task.getText(), 1, publishDate.getTime(), item.getId(), task.getSender(), RoomsMessageType.Task, task.getBody().toString())
 						&& !task.getSender().equals(mConfig.jabberID)) {
-					mServiceCallBack.newMessage(task.getSender(), null, task.getText(), false);
+					mServiceCallBack.newMessage(task.getSender(), roomID, task.getText(), false);
 				}
 			}
 		}
@@ -1490,7 +1491,7 @@ public class SmackableImp implements Smackable {
 	}
 
 	@Override
-	public void sendControlMessage(RoomsMessage message) {
+	public String sendControlMessage(RoomsMessage message) {
 		try {
 			message.setSender(mConfig.jabberID);
 			message.setRecipients(Arrays.asList(KeyRetriever.ROOMS_SERVER));
@@ -1508,28 +1509,35 @@ public class SmackableImp implements Smackable {
 				addChatMessageToDB(ChatConstants.OUTGOING, KeyRetriever.ROOMS_SERVER, encryptedMsg, ChatConstants.DS_NEW,
 						System.currentTimeMillis(), newMessage.getPacketID(), KeyRetriever.ROOMS_SERVER, message.getType(), null);
 			}
+			return newMessage.getPacketID();
 		}
 		catch (Exception ex) {
 			Log.e(TAG, "Failed to send control message", ex);
+			return null;
 		}
 	}
 
 	@Override
-	public void sendRoomMessage(String roomID, RoomsMessage message) {
+	public String sendRoomMessage(String roomID, RoomsMessage message) {
 		try {
+			String msgID = "msg_" + System.currentTimeMillis();
 			message.setSender(mConfig.jabberID);
-			List<String> recipients = new ArrayList<String>();
-			for (Participant p : getRoomParticipants(roomID)) {
-				recipients.add(p.getJid());
+			if (message.getRecipients() == null || message.getRecipients().isEmpty()) {
+				List<String> recipients = new ArrayList<String>();
+				for (Participant p : getRoomParticipants(roomID)) {
+					recipients.add(p.getJid());
+				}
+				message.setRecipients(recipients);
 			}
-			message.setRecipients(recipients);
 			String encryptedMsg = crypto.encryptMessage(message);
 			String payload = "<body>" + encryptedMsg + "</body>";
 			LeafNode roomNode = pubSub.getNode(roomID);
-			roomNode.send(new PayloadItem<SimplePayload>("msg_" + System.currentTimeMillis(), new SimplePayload(null, null, payload)));
+			roomNode.send(new PayloadItem<SimplePayload>(msgID, new SimplePayload(null, null, payload)));
+			return msgID;
 		}
 		catch (Exception ex) {
 			Log.e(TAG, "Failed to send control message", ex);
+			return null;
 		}
 	}
 }

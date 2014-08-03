@@ -31,6 +31,6 @@ public interface Smackable {
 	
 	String getNameForJID(String jid, String roomID);
 	void sendFile(String jid, String fileName);
-	void sendControlMessage(RoomsMessage request);
-	void sendRoomMessage(String roomID, RoomsMessage request);
+	String sendControlMessage(RoomsMessage request);
+	String sendRoomMessage(String roomID, RoomsMessage request);
 }

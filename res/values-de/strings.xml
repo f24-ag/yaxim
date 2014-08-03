@@ -105,7 +105,7 @@
 	<string name="Menu_sendFile">Datei anhängen</string>
 	<string name="Menu_encryptFile">Datei verschlüsseln</string>
 	<string name="Menu_decryptFile">Datei entschlüsseln</string>
-	<string name="Menu_startGroupChat">Gruppenchat starten</string>
+	<string name="Menu_task">Neue Aufgabe erstellen</string>
 	<string name="Menu_addRoom">Neuen Raum aufmachen</string>
 	<string name="Menu_sync">Kontaktliste abgleichen</string>
 					
@@ -255,4 +255,6 @@
 	<string name="rooms.fileSize">Größe:</string>
 	<string name="rooms.fileDescription">Beschreibung:</string>
 	<string name="rooms.singlechat">Gespräch mit %s anfangen?</string>
+	<string name="rooms.taskRecipient">Empfänger auswählen</string>
+	<string name="rooms.taskTitle">Aufgabe:</string>
 </resources>

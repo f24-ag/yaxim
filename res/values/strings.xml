@@ -110,7 +110,7 @@
 	<string name="Menu_sendFile">Send File</string>
 	<string name="Menu_encryptFile">Encrypt File</string>
 	<string name="Menu_decryptFile">Decrypt File</string>
-	<string name="Menu_startGroupChat">Start group chat</string>
+	<string name="Menu_task">Send task</string>
 	<string name="Menu_addRoom">Open new room</string>
 	<string name="Menu_sync">Sync addressbook</string>
 				
@@ -314,5 +314,7 @@
 	<string name="rooms.fileSize">Size:</string>
 	<string name="rooms.fileDescription">Description:</string>
 	<string name="rooms.singlechat">Start chat with %s?</string>
-								
+	<string name="rooms.taskRecipient">Select recipient</string>
+	<string name="rooms.taskTitle">Enter task title</string>
+										
 </resources>

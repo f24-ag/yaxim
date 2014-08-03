@@ -69,4 +69,12 @@ public class XMPPChatServiceAdapter {
 			e.printStackTrace();
 		}
 	}
+
+	public void sendTask(String roomID, String text, String recipient) {
+		try {
+			xmppServiceStub.sendTask(roomID, text, recipient);
+		} catch (RemoteException e) {
+			e.printStackTrace();
+		}
+	}
 }
