@@ -109,6 +109,7 @@ import android.preference.PreferenceManager;
 import android.util.Log;
 import de.f24.rooms.messages.ContactList;
 import de.f24.rooms.messages.FileMessage;
+import de.f24.rooms.messages.Identity;
 import de.f24.rooms.messages.Invitation;
 import de.f24.rooms.messages.Participant;
 import de.f24.rooms.messages.PersonalInfo;
@@ -120,6 +121,7 @@ import de.f24.rooms.messages.RoomsMessageFactory;
 import de.f24.rooms.messages.RoomsMessageType;
 import de.f24.rooms.messages.TaskMessage;
 import de.f24.rooms.messages.TextMessage;
+import de.f24.rooms.messages.Identity.IdentityType;
 
 public class SmackableImp implements Smackable {
 	final static private String TAG = "yaxim.SmackableImp";
@@ -819,8 +821,8 @@ public class SmackableImp implements Smackable {
 			if (isRoomMessage) {
 				List<String> recipients = new ArrayList<String>();
 				for (Participant p : getRoomParticipants(toJID)) {
-					for (String jid : p.getJids().keySet()) {
-						recipients.add(jid);
+					for (Identity identity : p.getIdentities()) {
+						recipients.add(identity.getJid());
 					}
 				}
 				textMsg.setRecipients(recipients);
@@ -905,8 +907,8 @@ public class SmackableImp implements Smackable {
 	public String getNameForJID(String jid, String roomID) {
 		if (roomID != null) {
 			for (Participant p : getRoomParticipants(roomID)) {
-				for (String j : p.getJids().keySet()) {
-					if (jid.equals(j)) {
+				for (Identity identity : p.getIdentities()) {
+					if (jid.equals(identity.getJid())) {
 						return p.getName();
 					}
 				}
@@ -1219,8 +1221,8 @@ public class SmackableImp implements Smackable {
 				
 				upsertParticipants(invitation.getRoomID(), invitation.getParticipants());
 				for (Participant p : invitation.getParticipants()) {
-					for (Entry<String, String> entry : p.getJids().entrySet()) {
-						crypto.getKeyAccessor().savePublicKey(entry.getKey(), entry.getValue());
+					for (Identity identity : p.getIdentities()) {
+						crypto.getKeyAccessor().savePublicKey(identity.getJid(), identity.getPublicKey());
 					}
 				}
 				mServiceCallBack.rosterChanged();
@@ -1259,15 +1261,15 @@ public class SmackableImp implements Smackable {
 			else if (roomsMessage instanceof ContactList) {
 				ContactList contactList = (ContactList)roomsMessage;
 				for (Participant p : contactList.getContacts()) {
-					for (Entry<String, String> entry : p.getJids().entrySet()) {
+					for (Identity identity : p.getIdentities()) {
 						final ContentValues values = new ContentValues();
-						values.put(RosterConstants.JID, entry.getKey());
+						values.put(RosterConstants.JID, identity.getJid());
 						values.put(RosterConstants.ALIAS, p.getName());
 						values.put(RosterConstants.STATUS_MODE, StatusMode.offline.ordinal());
 						values.put(RosterConstants.STATUS_MESSAGE, "");
 						values.put(RosterConstants.GROUP, "");
-						upsertRoster(values, entry.getKey());
-						crypto.getKeyAccessor().savePublicKey(entry.getKey(), entry.getValue());
+						upsertRoster(values, identity.getJid());
+						crypto.getKeyAccessor().savePublicKey(identity.getJid(), identity.getPublicKey());
 					}
 				}
 				mServiceCallBack.rosterChanged();
@@ -1300,8 +1302,8 @@ public class SmackableImp implements Smackable {
 					
 					upsertParticipants(configuration.getRoomID(), configuration.getParticipants());
 					for (Participant p : configuration.getParticipants()) {
-						for (Entry<String, String> entry : p.getJids().entrySet()) {
-							crypto.getKeyAccessor().savePublicKey(entry.getKey(), entry.getValue());
+						for (Identity identity : p.getIdentities()) {
+							crypto.getKeyAccessor().savePublicKey(identity.getJid(), identity.getPublicKey());
 						}
 					}
 					mServiceCallBack.rosterChanged();
@@ -1432,7 +1434,7 @@ public class SmackableImp implements Smackable {
 		ContentValues values = new ContentValues();
 		values.put(ParticipantConstants.ROOM, roomID);
 		for (Participant p : participants) {
-			values.put(ParticipantConstants.JID, p.getJids().keySet().iterator().next());
+			values.put(ParticipantConstants.JID, p.getIdentities().get(0).getJid());
 			values.put(ParticipantConstants.NAME, p.getName());
 			mContentResolver.insert(RosterProvider.PARTICIPANTS_URI, values);
 		}
@@ -1446,7 +1448,9 @@ public class SmackableImp implements Smackable {
 		while (c.moveToNext()) {
 			String jid = c.getString(c.getColumnIndex(ParticipantConstants.JID));
 			String name = c.getString(c.getColumnIndex(ParticipantConstants.NAME));
-			participants.add(new Participant(jid, name, "", ""));
+			Participant p = new Participant(name, null);
+			p.addIdentity(jid, null, IdentityType.Mobile);
+			participants.add(p);
 		}
 		return participants;
 	}
@@ -1537,8 +1541,8 @@ public class SmackableImp implements Smackable {
 			if (message.getRecipients() == null || message.getRecipients().isEmpty()) {
 				List<String> recipients = new ArrayList<String>();
 				for (Participant p : getRoomParticipants(roomID)) {
-					for (String jid : p.getJids().keySet()){
-						recipients.add(jid);
+					for (Identity identity : p.getIdentities()){
+						recipients.add(identity.getJid());
 					}
 				}
 				message.setRecipients(recipients);

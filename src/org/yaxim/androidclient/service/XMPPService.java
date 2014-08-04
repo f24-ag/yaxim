@@ -435,7 +435,7 @@ public class XMPPService extends GenericService {
 					throws RemoteException {
 				Registration registration = new Registration();
 				registration.setConfirmationCode(code);
-				//registration.setPublicKey(publicKey);
+				registration.setPublicKey(publicKey);
 				mSmackable.sendControlMessage(registration);
 			}
 
