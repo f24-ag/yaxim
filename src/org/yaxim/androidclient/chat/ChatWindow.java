@@ -9,7 +9,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.net.URLConnection;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -24,7 +23,7 @@ import org.yaxim.androidclient.NotifyingHandler;
 import org.yaxim.androidclient.R;
 import org.yaxim.androidclient.YaximApplication;
 import org.yaxim.androidclient.crypto.Crypto;
-import org.yaxim.androidclient.crypto.KeyRetriever;
+import org.yaxim.androidclient.crypto.KeyAccessor;
 import org.yaxim.androidclient.data.ChatProvider;
 import org.yaxim.androidclient.data.ChatProvider.ChatConstants;
 import org.yaxim.androidclient.data.RosterProvider;
@@ -39,7 +38,6 @@ import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
-import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -89,7 +87,6 @@ import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.ResponseHeaderOverrides;
-import com.google.common.io.Files;
 
 import de.f24.rooms.messages.RoomsMessageType;
 
@@ -591,7 +588,7 @@ public class ChatWindow extends SherlockListActivity implements OnKeyListener,
 				mRowView.setBackgroundColor(0x30ff0000); // default is transparent
 				break;
 			}
-			if (from.equals(KeyRetriever.ROOMS_SERVER)) {
+			if (from.equals(KeyAccessor.ROOMS_SERVER)) {
 				mRowView.setBackgroundColor(0x300000ff); // default is transparent
 			}
 			getMessageView().setText(message);

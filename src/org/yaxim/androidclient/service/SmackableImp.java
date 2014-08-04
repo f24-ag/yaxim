@@ -6,7 +6,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
-import java.util.Map.Entry;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.X509TrustManager;
@@ -78,7 +77,7 @@ import org.jivesoftware.smackx.receipts.DeliveryReceiptRequest;
 import org.jivesoftware.smackx.receipts.ReceiptReceivedListener;
 import org.yaxim.androidclient.YaximApplication;
 import org.yaxim.androidclient.crypto.Crypto;
-import org.yaxim.androidclient.crypto.KeyRetriever;
+import org.yaxim.androidclient.crypto.KeyAccessor;
 import org.yaxim.androidclient.data.ChatProvider;
 import org.yaxim.androidclient.data.ChatProvider.ChatConstants;
 import org.yaxim.androidclient.data.RosterProvider;
@@ -110,6 +109,7 @@ import android.util.Log;
 import de.f24.rooms.messages.ContactList;
 import de.f24.rooms.messages.FileMessage;
 import de.f24.rooms.messages.Identity;
+import de.f24.rooms.messages.Identity.IdentityType;
 import de.f24.rooms.messages.Invitation;
 import de.f24.rooms.messages.Participant;
 import de.f24.rooms.messages.PersonalInfo;
@@ -121,7 +121,6 @@ import de.f24.rooms.messages.RoomsMessageFactory;
 import de.f24.rooms.messages.RoomsMessageType;
 import de.f24.rooms.messages.TaskMessage;
 import de.f24.rooms.messages.TextMessage;
-import de.f24.rooms.messages.Identity.IdentityType;
 
 public class SmackableImp implements Smackable {
 	final static private String TAG = "yaxim.SmackableImp";
@@ -1243,7 +1242,7 @@ public class SmackableImp implements Smackable {
 					.commit();
 				ContentValues values = new ContentValues();
 				values.put(KeysConstants.JID, confirm.getJid());
-				mContentResolver.update(RosterProvider.KEYS_URI, values, KeysConstants.JID + " = ?", new String[] { "tmp" });
+				mContentResolver.update(RosterProvider.KEYS_URI, values, KeysConstants.JID + " = ?", new String[] { KeyAccessor.NEW_USER });
 				mXMPPConnection.disconnect();
 				requestConnectionState(ConnectionState.ONLINE);
 				
@@ -1510,20 +1509,20 @@ public class SmackableImp implements Smackable {
 	public String sendControlMessage(RoomsMessage message) {
 		try {
 			message.setSender(mConfig.jabberID);
-			message.setRecipients(Arrays.asList(KeyRetriever.ROOMS_SERVER));
+			message.setRecipients(Arrays.asList(KeyAccessor.ROOMS_SERVER));
 			String encryptedMsg = crypto.encryptMessage(message);
-			final Message newMessage = new Message(KeyRetriever.ROOMS_SERVER, Message.Type.chat);
+			final Message newMessage = new Message(KeyAccessor.ROOMS_SERVER, Message.Type.chat);
 			newMessage.setBody(encryptedMsg);
 	
 			if (isAuthenticated()) {
-				addChatMessageToDB(ChatConstants.OUTGOING, KeyRetriever.ROOMS_SERVER, encryptedMsg, ChatConstants.DS_SENT_OR_READ,
-					System.currentTimeMillis(), newMessage.getPacketID(), KeyRetriever.ROOMS_SERVER, message.getType(), null);
+				addChatMessageToDB(ChatConstants.OUTGOING, KeyAccessor.ROOMS_SERVER, encryptedMsg, ChatConstants.DS_SENT_OR_READ,
+					System.currentTimeMillis(), newMessage.getPacketID(), KeyAccessor.ROOMS_SERVER, message.getType(), null);
 				mXMPPConnection.sendPacket(newMessage);
 			} 
 			else {
 				// send offline -> store to DB
-				addChatMessageToDB(ChatConstants.OUTGOING, KeyRetriever.ROOMS_SERVER, encryptedMsg, ChatConstants.DS_NEW,
-						System.currentTimeMillis(), newMessage.getPacketID(), KeyRetriever.ROOMS_SERVER, message.getType(), null);
+				addChatMessageToDB(ChatConstants.OUTGOING, KeyAccessor.ROOMS_SERVER, encryptedMsg, ChatConstants.DS_NEW,
+						System.currentTimeMillis(), newMessage.getPacketID(), KeyAccessor.ROOMS_SERVER, message.getType(), null);
 			}
 			return newMessage.getPacketID();
 		}

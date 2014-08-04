@@ -14,6 +14,13 @@ import android.database.Cursor;
 import de.f24.rooms.crypto.EncryptionKeyAccessor;
 
 public class KeyAccessor implements EncryptionKeyAccessor {
+	public static final String ROOMS_SERVER = "control-client@rooms-dev-vpc.f24.com";
+	
+	public static final String ROOMS_PUBLIC_KEY = "f448811b9966a3f9e108d788b384e149e8bacff1622ee5085f393d1f8a1b5962";
+	
+	public static final String NEW_USER = "registration@rooms-dev-vpc.f24.com";
+
+	public static final String NEW_USER_PASSWORD = "xmpp2";
 
 	private ContentResolver mContentResolver;
     private Hex hex = new Hex();
@@ -58,11 +65,8 @@ public class KeyAccessor implements EncryptionKeyAccessor {
 	@Override
 	public String getPublicKey(String jid) {
 		String pk = null;
-		if (KeyRetriever.ROOMS_SERVER.equals(jid)) {
-			return KeyRetriever.ROOMS_PUBLIC_KEY;
-		}
-		else if (KeyRetriever.NEW_USER.equals(jid)) {
-			return KeyRetriever.NEW_USER_PUBLIC_KEY;
+		if (KeyAccessor.ROOMS_SERVER.equals(jid)) {
+			return KeyAccessor.ROOMS_PUBLIC_KEY;
 		}
 		else {
 			Cursor c = mContentResolver.query(RosterProvider.KEYS_URI, 
@@ -96,8 +100,8 @@ public class KeyAccessor implements EncryptionKeyAccessor {
 	public String getPrivateKey(String jid) {
 		String pk = null;
 		Cursor c = mContentResolver.query(RosterProvider.KEYS_URI, 
-				new String[] { KeysConstants.PRIVATE_KEY }, 
-				KeysConstants.JID + " = ?", new String[] { jid }, null);
+			new String[] { KeysConstants.PRIVATE_KEY }, 
+			KeysConstants.JID + " = ?", new String[] { jid }, null);
 		if (c.moveToNext()) {
 			pk = c.getString(0);
 		}

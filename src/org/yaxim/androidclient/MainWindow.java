@@ -9,7 +9,7 @@ import java.util.Set;
 
 import org.yaxim.androidclient.IXMPPRosterCallback.Stub;
 import org.yaxim.androidclient.crypto.Crypto;
-import org.yaxim.androidclient.crypto.KeyRetriever;
+import org.yaxim.androidclient.crypto.KeyAccessor;
 import org.yaxim.androidclient.data.ChatProvider;
 import org.yaxim.androidclient.data.ChatProvider.ChatConstants;
 import org.yaxim.androidclient.data.RosterProvider;
@@ -782,7 +782,7 @@ public class MainWindow extends SherlockFragmentActivity {
 	private void showFirstStartUpDialogIfPrefsEmpty() {
 		Log.i(TAG, "showFirstStartUpDialogIfPrefsEmpty, JID: "
 						+ mConfig.jabberID);
-		if (mConfig.jabberID.length() < 3 || mConfig.jabberID.equals(KeyRetriever.NEW_USER)) {
+		if (mConfig.jabberID.length() < 3 || mConfig.jabberID.equals(KeyAccessor.NEW_USER)) {
 			// load preference defaults
 			PreferenceManager.setDefaultValues(this, R.layout.mainprefs, false);
 			PreferenceManager.setDefaultValues(this, R.layout.accountprefs, false);
@@ -793,8 +793,8 @@ public class MainWindow extends SherlockFragmentActivity {
 			SharedPreferences prefs = PreferenceManager
 					.getDefaultSharedPreferences(this);
 			prefs.edit().putBoolean(PreferenceConstants.CONN_STARTUP, true)
-				.putString(PreferenceConstants.JID, KeyRetriever.NEW_USER)
-				.putString(PreferenceConstants.PASSWORD, KeyRetriever.NEW_USER_PASSWORD)
+				.putString(PreferenceConstants.JID, KeyAccessor.NEW_USER)
+				.putString(PreferenceConstants.PASSWORD, KeyAccessor.NEW_USER_PASSWORD)
 				.putString(PreferenceConstants.RESSOURCE, ressource)
 				.commit();
 
@@ -919,8 +919,14 @@ public class MainWindow extends SherlockFragmentActivity {
 		.setPositiveButton(android.R.string.ok,
 				new DialogInterface.OnClickListener() {
 					public void onClick(DialogInterface dialog, int which) {
-						serviceAdapter.sendRegistrationMessage1(input.getText().toString());
-						new FirstStartDialog(MainWindow.this, serviceAdapter).show();
+						try {
+							YaximApplication.getApp(MainWindow.this).mCrypto.generateKeys(KeyAccessor.NEW_USER);
+							serviceAdapter.sendRegistrationMessage1(input.getText().toString());
+							new FirstStartDialog(MainWindow.this, serviceAdapter).show();
+						}
+						catch (Exception ex) {
+							Toast.makeText(MainWindow.this, "Registration failed", Toast.LENGTH_SHORT).show();
+						}
 					}
 				})
 		.setNegativeButton(android.R.string.cancel, null)
