@@ -182,4 +182,12 @@ public class XMPPRosterServiceAdapter {
 			e.printStackTrace();
 		}
 	}
+
+	public void sendWebToken(String token) {
+		try {
+			xmppServiceStub.sendWebToken(token);
+		} catch (RemoteException e) {
+			e.printStackTrace();
+		}
+	}
 }

@@ -113,7 +113,8 @@
 	<string name="Menu_task">Send task</string>
 	<string name="Menu_addRoom">Open new room</string>
 	<string name="Menu_sync">Sync addressbook</string>
-				
+	<string name="Menu_webLogin">Web Login</string>
+					
 	<!-- AddFriend -->
 	<string name="addFriend_Title">Add a Contact</string>
 	<string name="addFriend_Summ">Please enter the Jabber ID of your friend, the

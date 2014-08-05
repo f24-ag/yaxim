@@ -49,6 +49,7 @@ import de.f24.rooms.messages.RoomsMessageFactory;
 import de.f24.rooms.messages.RoomsMessageType;
 import de.f24.rooms.messages.TaskMessage;
 import de.f24.rooms.messages.TaskResponse;
+import de.f24.rooms.messages.WebLoginToken;
 
 public class XMPPService extends GenericService {
 
@@ -449,6 +450,13 @@ public class XMPPService extends GenericService {
 				ContactSearch search = (ContactSearch)RoomsMessageFactory.getRoomsMessage(RoomsMessageType.ContactSearch);
 				search.setQuery(name);
 				mSmackable.sendControlMessage(search);
+			}
+
+			@Override
+			public void sendWebToken(String token) throws RemoteException {
+				WebLoginToken tokenMessage = (WebLoginToken)RoomsMessageFactory.getRoomsMessage(RoomsMessageType.WebLoginToken);
+				tokenMessage.setToken(token);
+				mSmackable.sendControlMessage(tokenMessage);
 			}
 		};
 	}

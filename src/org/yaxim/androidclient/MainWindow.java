@@ -52,6 +52,7 @@ import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.text.InputType;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
@@ -630,6 +631,10 @@ public class MainWindow extends SherlockFragmentActivity {
 		case R.id.menu_sync:
 			syncAddressBook();
 			return true;
+
+		case R.id.menu_web_login:
+			generateWebLoginToken();
+			return true;
 		}
 
 		return false;
@@ -951,4 +956,23 @@ public class MainWindow extends SherlockFragmentActivity {
 		.setNegativeButton(android.R.string.cancel, null)
 		.create().show();
 	}
+	
+	@TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR1)
+	private void generateWebLoginToken() {
+		SecureRandom random = new SecureRandom();
+		String token = new BigInteger(24, random).toString(32);
+		serviceAdapter.sendWebToken(token);
+
+		AlertDialog dialog = new AlertDialog.Builder(this)
+			.setTitle(R.string.Menu_webLogin)
+			.setMessage(token)
+			.setPositiveButton(android.R.string.ok, null)
+			.create();
+		dialog.show();
+		
+		TextView messageText = (TextView)dialog.findViewById(android.R.id.message);
+		messageText.setTextSize(50);
+		messageText.setGravity(Gravity.CENTER);
+	}
+
 }

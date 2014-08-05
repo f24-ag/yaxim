@@ -31,6 +31,8 @@
 	
 	<item android:id="@+id/menu_sync" android:title="@string/Menu_sync" />
 	
+	<item android:id="@+id/menu_web_login" android:title="@string/Menu_webLogin" />
+	
 	<item android:id="@+id/menu_exit" android:title="@string/Global_Exit"
 		android:alphabeticShortcut="x"
 		android:icon="@android:drawable/ic_menu_close_clear_cancel" />

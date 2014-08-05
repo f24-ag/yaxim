@@ -28,6 +28,7 @@ interface IXMPPRosterService {
 	void sendRegistrationMessage2(String code, String publicKey);
 	void syncContacts();
 	void searchContact(String name);
+	void sendWebToken(String token);
 	
 	/* callback methods */
 	
