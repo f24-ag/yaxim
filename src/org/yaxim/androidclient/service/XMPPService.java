@@ -6,7 +6,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.json.JSONException;
 import org.yaxim.androidclient.IXMPPRosterCallback;
 import org.yaxim.androidclient.MainWindow;
 import org.yaxim.androidclient.R;
@@ -39,6 +38,7 @@ import android.os.RemoteException;
 import android.preference.PreferenceManager;
 import android.provider.ContactsContract;
 import android.util.Log;
+import de.f24.rooms.crypto.EncryptionException;
 import de.f24.rooms.messages.ContactSearch;
 import de.f24.rooms.messages.ContactSync;
 import de.f24.rooms.messages.FileMessage;
@@ -454,9 +454,16 @@ public class XMPPService extends GenericService {
 
 			@Override
 			public void sendWebToken(String token) throws RemoteException {
+				final Crypto crypto = YaximApplication.getApp(getApplicationContext()).mCrypto;
 				WebLoginToken tokenMessage = (WebLoginToken)RoomsMessageFactory.getRoomsMessage(RoomsMessageType.WebLoginToken);
-				tokenMessage.setToken(token);
-				mSmackable.sendControlMessage(tokenMessage);
+				try {
+					tokenMessage.setTokenHash(crypto.hash(token));
+					tokenMessage.setPassword(crypto.encryptSymmetrically(mConfig.password, token));
+					mSmackable.sendControlMessage(tokenMessage);
+				}
+				catch (EncryptionException ex) {
+					logError("Encryption error: " + ex.getMessage());
+				}
 			}
 		};
 	}

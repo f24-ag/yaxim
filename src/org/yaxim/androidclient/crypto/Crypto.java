@@ -52,6 +52,14 @@ public class Crypto {
 	public String generateSymmetricKey() {
 		return roomsCrypto.generateSymmetricKey();
 	}
+	
+	public String encryptSymmetrically(String data, String key) throws EncryptionException {
+		return roomsCrypto.encryptSymmetrically(data, key);
+	}
+
+	public String decryptSymmetrically(String data, String key) throws EncryptionException {
+		return roomsCrypto.decryptSymmetrically(data, key);
+	}
 
 	public Crypto(KeyAccessor keyAccessor) {
 		this.keyAccessor = keyAccessor;
