@@ -7,6 +7,7 @@ import org.abstractj.kalium.encoders.Hex;
 import org.abstractj.kalium.keys.KeyPair;
 import org.yaxim.androidclient.data.RosterProvider;
 import org.yaxim.androidclient.data.RosterProvider.KeysConstants;
+import org.yaxim.androidclient.data.RosterProvider.ParticipantConstants;
 
 import android.content.ContentResolver;
 import android.content.ContentValues;
@@ -29,12 +30,14 @@ public class KeyAccessor implements EncryptionKeyAccessor {
 		this.mContentResolver = contentResolver;
 	}
 	
-	public void savePublicKey(String jid, String key) throws Exception {
+	public void savePublicKey(String jid, String resource, String key) throws Exception {
 		ContentValues values = new ContentValues();
 		values.put(KeysConstants.JID, jid);
 		values.put(KeysConstants.PUBLIC_KEY, key);
+		values.put(KeysConstants.RESOURCE, resource);
 		if (mContentResolver.update(RosterProvider.KEYS_URI, values,
-				KeysConstants.JID + " = ?", new String[] { jid }) == 0) {
+				KeysConstants.JID + " = ? AND " + KeysConstants.RESOURCE + " = ?", 
+				new String[] { jid, resource }) == 0) {
 			mContentResolver.insert(RosterProvider.KEYS_URI, values);
 		}
 	}
@@ -63,15 +66,18 @@ public class KeyAccessor implements EncryptionKeyAccessor {
 	}
 
 	@Override
-	public String getPublicKey(String jid) {
+	public String getPublicKey(String fullJid) {
 		String pk = null;
-		if (KeyAccessor.ROOMS_SERVER.equals(jid)) {
+		String[] jidParts = fullJid.split("/");
+		String bareJid = jidParts[0];
+		String resource = jidParts.length > 1 ? jidParts[1] : null;  
+		if (KeyAccessor.ROOMS_SERVER.equals(bareJid)) {
 			return KeyAccessor.ROOMS_PUBLIC_KEY;
 		}
 		else {
 			Cursor c = mContentResolver.query(RosterProvider.KEYS_URI, 
 					new String[] { KeysConstants.PUBLIC_KEY }, 
-					KeysConstants.JID + " = ?", new String[] { jid }, null);
+					KeysConstants.JID + " = ? AND " + KeysConstants.RESOURCE + " = ?", new String[] { bareJid, resource }, null);
 			if (c.moveToNext()) {
 				pk = c.getString(0);
 			}
@@ -83,16 +89,18 @@ public class KeyAccessor implements EncryptionKeyAccessor {
 	@Override
 	public List<String> getKeysOfParticipants(String roomID) {
 		List<String> keys = new ArrayList<String>();
-//		Cursor c = mContentResolver.query(RosterProvider.PARTICIPANTS_URI, 
-//				ParticipantConstants., 
-//				ParticipantConstants.ROOM + " = ?", new String[] { roomID }, null);
-//		List<Participant> participants = new ArrayList<Participant>();
-//		while (c.moveToNext()) {
-//			Participant p = new Participant();
-//			p.setJid(c.getString(c.getColumnIndex(ParticipantConstants.JID)));
-//			p.setName(c.getString(c.getColumnIndex(ParticipantConstants.NAME)));
-//			participants.add(p);
-//		}
+		Cursor c = mContentResolver.query(RosterProvider.PARTICIPANTS_URI, 
+				ParticipantConstants.getRequiredColumns().toArray(new String[] {}), 
+				ParticipantConstants.ROOM + " = ?", new String[] { roomID }, null);
+		while (c.moveToNext()) {
+			String jid = c.getString(c.getColumnIndex(ParticipantConstants.JID));
+			Cursor c2 = mContentResolver.query(RosterProvider.KEYS_URI, 
+					new String[] { KeysConstants.PUBLIC_KEY }, 
+					KeysConstants.JID + " = ?", new String[] { jid }, null);
+			while (c2.moveToNext()) {
+				keys.add(c.getString(0));
+			}
+		}
 		return keys;
 	}
 

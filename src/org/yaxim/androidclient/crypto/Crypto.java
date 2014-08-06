@@ -3,11 +3,9 @@ package org.yaxim.androidclient.crypto;
 import java.io.InputStream;
 import java.io.OutputStream;
 
-import org.abstractj.kalium.keys.KeyPair;
 import org.jivesoftware.smack.util.Base64;
 
 import de.f24.rooms.crypto.EncryptionException;
-import de.f24.rooms.crypto.EncryptionKeyAccessor;
 import de.f24.rooms.crypto.EncryptionType;
 import de.f24.rooms.crypto.RoomsCrypto;
 import de.f24.rooms.messages.RoomsMessage;

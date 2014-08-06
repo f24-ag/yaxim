@@ -15,9 +15,9 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.database.sqlite.SQLiteQueryBuilder;
 import android.net.Uri;
+import android.os.Handler;
 import android.provider.BaseColumns;
 import android.text.TextUtils;
-import android.os.Handler;
 import android.util.Log;
 
 public class RosterProvider extends ContentProvider {
@@ -401,7 +401,7 @@ public class RosterProvider extends ContentProvider {
 	private static class RosterDatabaseHelper extends SQLiteOpenHelper {
 
 		private static final String DATABASE_NAME = "roster.db";
-		private static final int DATABASE_VERSION = 1;
+		private static final int DATABASE_VERSION = 2;
 
 		public RosterDatabaseHelper(Context context) {
 			super(context, DATABASE_NAME, null, DATABASE_VERSION);
@@ -461,6 +461,7 @@ public class RosterProvider extends ContentProvider {
 					+ KeysConstants._ID
 					+ " INTEGER PRIMARY KEY AUTOINCREMENT, "
 					+ KeysConstants.JID + " TEXT, "
+					+ KeysConstants.RESOURCE + " TEXT, "
 					+ KeysConstants.PUBLIC_KEY + " TEXT, " 
 					+ KeysConstants.PRIVATE_KEY + " TEXT);");
 			db.execSQL("CREATE INDEX idx_jid_id ON " + TABLE_PARTICIPANTS
@@ -471,6 +472,9 @@ public class RosterProvider extends ContentProvider {
 		public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
 			infoLog("onUpgrade: from " + oldVersion + " to " + newVersion);
 			switch (oldVersion) {
+			case 1:
+				db.execSQL("ALTER TABLE " + TABLE_KEYS + " ADD " + KeysConstants.RESOURCE + " TEXT");
+				break;
 			default:
 				db.execSQL("DROP TABLE IF EXISTS " + TABLE_GROUPS);
 				db.execSQL("DROP TABLE IF EXISTS " + TABLE_ROSTER);
@@ -574,6 +578,7 @@ public class RosterProvider extends ContentProvider {
 		public static final String JID = "jid";
 		public static final String PUBLIC_KEY = "public_key";
 		public static final String PRIVATE_KEY = "private_key";
+		public static final String RESOURCE = "resource";
 
 		public static ArrayList<String> getRequiredColumns() {
 			ArrayList<String> tmpList = new ArrayList<String>();

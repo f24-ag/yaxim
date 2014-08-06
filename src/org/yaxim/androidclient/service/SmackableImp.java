@@ -820,7 +820,9 @@ public class SmackableImp implements Smackable {
 			if (isRoomMessage) {
 				List<String> recipients = new ArrayList<String>();
 				for (Participant p : getRoomParticipants(toJID)) {
-					recipients.add(p.getJid());
+					for (Identity i : p.getIdentities()) {
+						recipients.add(p.getJid() + "/" + i.getResource());
+					}
 				}
 				textMsg.setRecipients(recipients);
 				String encryptedMsg = crypto.encryptMessage(textMsg);
@@ -1217,7 +1219,7 @@ public class SmackableImp implements Smackable {
 				upsertParticipants(invitation.getRoomID(), invitation.getParticipants());
 				for (Participant p : invitation.getParticipants()) {
 					for (Identity identity : p.getIdentities()) {
-						crypto.getKeyAccessor().savePublicKey(p.getJid(), identity.getPublicKey());
+						crypto.getKeyAccessor().savePublicKey(p.getJid(), identity.getResource(), identity.getPublicKey());
 					}
 				}
 				mServiceCallBack.rosterChanged();
@@ -1264,7 +1266,7 @@ public class SmackableImp implements Smackable {
 						values.put(RosterConstants.STATUS_MESSAGE, "");
 						values.put(RosterConstants.GROUP, "");
 						upsertRoster(values, p.getJid());
-						crypto.getKeyAccessor().savePublicKey(p.getJid(), identity.getPublicKey());
+						crypto.getKeyAccessor().savePublicKey(p.getJid(), null, identity.getPublicKey());
 					}
 				}
 				mServiceCallBack.rosterChanged();
@@ -1298,7 +1300,7 @@ public class SmackableImp implements Smackable {
 					upsertParticipants(configuration.getRoomID(), configuration.getParticipants());
 					for (Participant p : configuration.getParticipants()) {
 						for (Identity identity : p.getIdentities()) {
-							crypto.getKeyAccessor().savePublicKey(p.getJid(), identity.getPublicKey());
+							crypto.getKeyAccessor().savePublicKey(p.getJid(), identity.getResource(), identity.getPublicKey());
 						}
 					}
 					mServiceCallBack.rosterChanged();
@@ -1435,7 +1437,7 @@ public class SmackableImp implements Smackable {
 		}
 	}
 	
-	private List<Participant> getRoomParticipants(String roomID) {
+	private List<Participant> getRoomParticipants(String roomID) {  
 		Cursor c = mContentResolver.query(RosterProvider.PARTICIPANTS_URI, 
 				ParticipantConstants.getRequiredColumns().toArray(new String[] {}), 
 				ParticipantConstants.ROOM + " = ?", new String[] { roomID }, null);
@@ -1443,7 +1445,16 @@ public class SmackableImp implements Smackable {
 		while (c.moveToNext()) {
 			String jid = c.getString(c.getColumnIndex(ParticipantConstants.JID));
 			String name = c.getString(c.getColumnIndex(ParticipantConstants.NAME));
-			participants.add(new Participant(jid, name, null));
+			Participant p = new Participant(jid, name, null);
+			Cursor c2 = mContentResolver.query(RosterProvider.KEYS_URI, 
+					new String[] { KeysConstants.RESOURCE, KeysConstants.PUBLIC_KEY }, 
+					KeysConstants.JID + " = ?", new String[] { jid }, null);
+			while (c2.moveToNext()) {
+				String resource = c.getString(c.getColumnIndex(KeysConstants.RESOURCE));
+				String publicKey = c.getString(c.getColumnIndex(KeysConstants.PUBLIC_KEY));
+				p.addIdentity(resource, publicKey, IdentityType.Mobile);
+			}
+			participants.add(p);
 		}
 		return participants;
 	}
@@ -1534,7 +1545,9 @@ public class SmackableImp implements Smackable {
 			if (message.getRecipients() == null || message.getRecipients().isEmpty()) {
 				List<String> recipients = new ArrayList<String>();
 				for (Participant p : getRoomParticipants(roomID)) {
-					recipients.add(p.getJid());
+					for (Identity i : p.getIdentities()) {
+						recipients.add(p.getJid() + "/" + i.getResource());
+					}
 				}
 				message.setRecipients(recipients);
 			}

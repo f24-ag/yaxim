@@ -310,36 +310,6 @@ public class MainWindow extends SherlockFragmentActivity {
 				});
 	}
 	
-	void assignKey(final String jabberID) {
-		final EditText inputText = new EditText(this);
-		final Crypto crypto = YaximApplication.getApp(getApplicationContext()).mCrypto;
-		try {
-			String key = crypto.getKeyAccessor().getPublicKey(jabberID);
-			inputText.setText(key);
-		}
-		catch (Exception ex) {
-			inputText.setText("--");
-		}
-		
-		new AlertDialog.Builder(this)
-		.setTitle(R.string.account_publicKeyAssign)
-		.setView(inputText)
-		.setPositiveButton(android.R.string.ok,
-			new DialogInterface.OnClickListener() {
-				public void onClick(DialogInterface dialog, int which) {
-					try {
-						crypto.getKeyAccessor().savePublicKey(jabberID, inputText.getText().toString());
-					}
-					catch (Exception ex) {
-						ex.printStackTrace();
-						Toast.makeText(getApplicationContext(), "Error: " + ex.getMessage(), Toast.LENGTH_LONG).show();
-					}
-				}
-			})
-		.setNegativeButton(android.R.string.cancel, null)
-		.create().show();
-	}
-
 	void moveRosterItemToGroupDialog(final String jabberID) {
 		LayoutInflater inflater = (LayoutInflater)getSystemService(
 			      LAYOUT_INFLATER_SERVICE);
@@ -435,10 +405,6 @@ public class MainWindow extends SherlockFragmentActivity {
 				moveRosterItemToGroupDialog(userJid);
 				return true;
 				
-			case R.id.roster_contextmenu_assign_key:
-				if (!isConnected()) { showToastNotification(R.string.Global_authenticate_first); return true; }
-				assignKey(userJid);
-				return true;
 			}
 		} else {
 
