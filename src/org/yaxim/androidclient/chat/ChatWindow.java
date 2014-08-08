@@ -1,28 +1,18 @@
 package org.yaxim.androidclient.chat;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 import org.json.JSONObject;
 import org.yaxim.androidclient.MainWindow;
 import org.yaxim.androidclient.NotifyingHandler;
 import org.yaxim.androidclient.R;
 import org.yaxim.androidclient.YaximApplication;
-import org.yaxim.androidclient.crypto.Crypto;
 import org.yaxim.androidclient.crypto.KeyAccessor;
 import org.yaxim.androidclient.data.ChatProvider;
 import org.yaxim.androidclient.data.ChatProvider.ChatConstants;
@@ -65,7 +55,6 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnKeyListener;
 import android.view.ViewGroup;
-import android.webkit.MimeTypeMap;
 import android.widget.AdapterView;
 import android.widget.AdapterView.AdapterContextMenuInfo;
 import android.widget.AdapterView.OnItemClickListener;
@@ -81,12 +70,6 @@ import com.actionbarsherlock.app.ActionBar;
 import com.actionbarsherlock.app.SherlockListActivity;
 import com.actionbarsherlock.view.Menu;
 import com.actionbarsherlock.view.Window;
-import com.amazonaws.auth.BasicAWSCredentials;
-import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
-import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.amazonaws.services.s3.model.PutObjectRequest;
-import com.amazonaws.services.s3.model.ResponseHeaderOverrides;
 
 import de.f24.rooms.messages.RoomsMessageType;
 
@@ -188,8 +171,7 @@ public class ChatWindow extends SherlockListActivity implements OnKeyListener,
 							showTaskDialog(_id, extraData);
 						}
 						else {
-							Crypto crypto = YaximApplication.getApp(getApplicationContext()).mCrypto;
-							new DownloadFileTask(ChatWindow.this, crypto).execute(extraData);
+							new DownloadFileTask(ChatWindow.this).execute(extraData);
 						}
 					}
 					catch (Exception ex) {
@@ -693,8 +675,7 @@ public class ChatWindow extends SherlockListActivity implements OnKeyListener,
 		if (selectedFile != null) {
 			switch (requestCode) {
 			case R.id.menu_send_file:
-				Crypto crypto = YaximApplication.getApp(getApplicationContext()).mCrypto;
-				new UploadFileTask(this, crypto).execute(selectedFile);
+				new UploadFileTask(this).execute(selectedFile);
 				break;
 			}
 		}
@@ -779,13 +760,11 @@ public class ChatWindow extends SherlockListActivity implements OnKeyListener,
 	}
 	
 	class UploadFileTask extends AsyncTask<String, Void, String> {
-		private Crypto crypto;
 		private ProgressDialog spinner;
 		private Exception ex;
 		
-		public UploadFileTask(Context ctx, Crypto crypto) {
+		public UploadFileTask(Context ctx) {
 			super();
-			this.crypto = crypto;
 			spinner = new ProgressDialog(ctx);			
 		    spinner.setMessage(ctx.getString(R.string.rooms_uploading));
 		}
@@ -797,36 +776,8 @@ public class ChatWindow extends SherlockListActivity implements OnKeyListener,
 
 		@Override
 	    protected String doInBackground(String... selectedFiles) {
-	    	String selectedFile = selectedFiles[0];
 			try {
-				File file = new File(selectedFile);
-				
-				FileInputStream in = new FileInputStream(selectedFile);
-				ByteArrayOutputStream out = new ByteArrayOutputStream();
-				String key = crypto.generateSymmetricKey();
-				String fileID = UUID.randomUUID().toString();
-
-				crypto.encryptStream(in, out, key);
-				
-				AmazonS3Client s3Client = new AmazonS3Client(new BasicAWSCredentials("AKIAJ4H7OKTG6VJDC6OA", "ccRZK175YVVSfMrK0vCPgvcWbh81gYnaiFlg/yxb"));
-				ObjectMetadata metadata = new ObjectMetadata();
-				metadata.setContentLength(out.size());
-
-				String mime = getMimeTypeFromFile(file, null);
-
-				metadata.setContentType(mime);
-				PutObjectRequest por = new PutObjectRequest("encrypted-file-storage", fileID, new ByteArrayInputStream(out.toByteArray()), metadata); 
-				s3Client.putObject(por);
-				
-				ResponseHeaderOverrides override = new ResponseHeaderOverrides();
-				override.setContentType(mime);
-				GeneratePresignedUrlRequest urlRequest = new GeneratePresignedUrlRequest("encrypted-file-storage", fileID);
-				urlRequest.setExpiration(new Date(System.currentTimeMillis() + 360000000));
-				urlRequest.setResponseHeaders(override);
-				URL url = s3Client.generatePresignedUrl(urlRequest);
-				
-				mServiceAdapter.sendFile(mWithJabberID, file.getName(), file.length(), key, url.toString());
-				return url.toString();
+				return mServiceAdapter.uploadFile(ChatWindow.this, mWithJabberID, selectedFiles[0]);
 			}
 			catch (Exception ex) {
 				this.ex = ex;
@@ -847,13 +798,12 @@ public class ChatWindow extends SherlockListActivity implements OnKeyListener,
 	}
 
 	class DownloadFileTask extends AsyncTask<JSONObject, Void, String> {
-		private Crypto crypto;
 		private ProgressDialog spinner;
 		private Exception ex;
+		private String mimeType;
 		
-		public DownloadFileTask(Context ctx, Crypto crypto) {
+		public DownloadFileTask(Context ctx) {
 			super();
-			this.crypto = crypto;
 			spinner = new ProgressDialog(ctx);			
 		    spinner.setMessage(ctx.getString(R.string.rooms_downloading));
 		}
@@ -865,58 +815,14 @@ public class ChatWindow extends SherlockListActivity implements OnKeyListener,
 
 		@Override
 	    protected String doInBackground(JSONObject... fileInfo) {
-			InputStream input = null;
-	        ByteArrayOutputStream output = null;
-	        HttpURLConnection connection = null;
-	        try {
-		        String downloadLink = fileInfo[0].getString("download-link");
-		        String filename = fileInfo[0].getString("filename");
-		        String encryptionKey = fileInfo[0].getString("key");
-		        //String mimeType = fileInfo[0].getString("mime-type");
-	            URL url = new URL(downloadLink);
-	            connection = (HttpURLConnection) url.openConnection();
-	            connection.connect();
-
-	            if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
-	                throw new Exception("Server returned HTTP " + connection.getResponseCode()
-	                        + " " + connection.getResponseMessage());
-	            }
-
-	            input = connection.getInputStream();
-	            output = new ByteArrayOutputStream();
-	            byte data[] = new byte[4096];
-	            int count;
-	            while ((count = input.read(data)) != -1) {
-	                // allow canceling with back button
-	                if (isCancelled()) {
-	                    input.close();
-	                    return null;
-	                }
-	                output.write(data, 0, count);
-	            }
-	            File dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
-	            String fullName = dir.getAbsolutePath() + File.separator + filename;
-	            FileOutputStream decryptedFile = new FileOutputStream(fullName);
-	            crypto.decryptStream(new ByteArrayInputStream(output.toByteArray()), decryptedFile, encryptionKey);
-	            
-	            return fullName;
-	        } 
-	        catch (Exception e) {
-	        	this.ex = e;
-	            return null;
-	        } 
-	        finally {
-	            try {
-	                if (output != null)
-	                    output.close();
-	                if (input != null)
-	                    input.close();
-	            } 
-	            catch (IOException ignored) {
-	            }
-	            if (connection != null)
-	                connection.disconnect();
-	        }
+			try {
+				mimeType = fileInfo[0].getString("mime-type");
+				return mServiceAdapter.downloadFile(fileInfo[0], ChatWindow.this);
+			}
+			catch (Exception ex) {
+				this.ex = ex;
+				return null;
+			}
 		}
 
 	    protected void onPostExecute(String uri) {
@@ -925,10 +831,11 @@ public class ChatWindow extends SherlockListActivity implements OnKeyListener,
 	    		Toast.makeText(getBaseContext(), ex != null ? ex.getMessage() : "Error", Toast.LENGTH_LONG).show();
 	    	}
 	    	else {
-	    		Log.i(TAG, uri);Intent intent = new Intent();
+	    		Log.i(TAG, uri);
+	    		Intent intent = new Intent();
 	    		File file = new File(uri);
 	            intent.setAction(android.content.Intent.ACTION_VIEW);
-	            intent.setDataAndType(Uri.fromFile(file), getMimeTypeFromFile(file, "*/*"));
+	            intent.setDataAndType(Uri.fromFile(file), mimeType);
 	            startActivity(intent); 
 	    	}
 	    }
@@ -963,18 +870,5 @@ public class ChatWindow extends SherlockListActivity implements OnKeyListener,
 			})
 		.setNegativeButton(android.R.string.cancel, null)
 		.create().show();
-	}
-	
-	private String getMimeTypeFromFile(File file, String fallback) {
-		Uri uri = Uri.fromFile(file);
-		MimeTypeMap mimeTypeMap = MimeTypeMap.getSingleton();
-		String ext = MimeTypeMap.getFileExtensionFromUrl(uri.toString());
-		String mime = mimeTypeMap.getMimeTypeFromExtension(ext);
-		
-		if (mime == null) {
-			mime = fallback;
-		}
-		
-		return mime;
 	}
 }

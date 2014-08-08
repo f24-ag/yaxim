@@ -1448,10 +1448,11 @@ public class SmackableImp implements Smackable {
 			Participant p = new Participant(jid, name, null);
 			Cursor c2 = mContentResolver.query(RosterProvider.KEYS_URI, 
 					new String[] { KeysConstants.RESOURCE, KeysConstants.PUBLIC_KEY }, 
-					KeysConstants.JID + " = ?", new String[] { jid }, null);
+					KeysConstants.JID + " = ? AND " + KeysConstants.RESOURCE + " is not null", 
+					new String[] { jid }, null);
 			while (c2.moveToNext()) {
-				String resource = c.getString(c.getColumnIndex(KeysConstants.RESOURCE));
-				String publicKey = c.getString(c.getColumnIndex(KeysConstants.PUBLIC_KEY));
+				String resource = c2.getString(c2.getColumnIndex(KeysConstants.RESOURCE));
+				String publicKey = c2.getString(c2.getColumnIndex(KeysConstants.PUBLIC_KEY));
 				p.addIdentity(resource, publicKey, IdentityType.Mobile);
 			}
 			participants.add(p);

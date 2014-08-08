@@ -245,7 +245,7 @@ public class XMPPService extends GenericService {
 			}
 
 			@Override
-			public String sendFile(String jabberID, String fileName, long size, String key, String url)
+			public String sendFile(String jabberID, String fileName, long size, String key, String url, String mimeType)
 					throws RemoteException {
 				if (mSmackable != null) {
 					FileMessage message = (FileMessage)RoomsMessageFactory.getRoomsMessage(RoomsMessageType.File);
@@ -255,6 +255,7 @@ public class XMPPService extends GenericService {
 						message.setKey(key);
 						message.setDownloadLink(url);
 						message.setDescription(fileName);
+						message.setMimeType(mimeType);
 						return mSmackable.sendRoomMessage(jabberID, message);
 					}
 					catch (Exception ex) {

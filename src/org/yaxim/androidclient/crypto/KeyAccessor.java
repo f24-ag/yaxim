@@ -75,9 +75,15 @@ public class KeyAccessor implements EncryptionKeyAccessor {
 			return KeyAccessor.ROOMS_PUBLIC_KEY;
 		}
 		else {
+			String selection = KeysConstants.JID + " = ? ";
+			String[] args = new String[] { bareJid }; 
+			if (resource != null) {
+				selection += " AND " + KeysConstants.RESOURCE + " = ?";
+				args = jidParts; 
+			}
 			Cursor c = mContentResolver.query(RosterProvider.KEYS_URI, 
 					new String[] { KeysConstants.PUBLIC_KEY }, 
-					KeysConstants.JID + " = ? AND " + KeysConstants.RESOURCE + " = ?", new String[] { bareJid, resource }, null);
+					selection, args, null); 
 			if (c.moveToNext()) {
 				pk = c.getString(0);
 			}

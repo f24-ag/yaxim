@@ -2,6 +2,7 @@ package org.yaxim.androidclient;
 
 import org.jboss.aerogear.android.unifiedpush.MessageHandler;
 import org.yaxim.androidclient.data.YaximConfiguration;
+import org.yaxim.androidclient.util.PreferenceConstants;
 
 import android.app.Activity;
 import android.app.NotificationManager;
@@ -10,7 +11,9 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.graphics.Color;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.support.v4.app.NotificationCompat;
 import android.util.Log;
 
@@ -60,11 +63,16 @@ public class NotifyingHandler extends BroadcastReceiver implements MessageHandle
 			.setSound(mConfig.notifySound)
 			.setAutoCancel(true)
 			.setOngoing(false)
-			.setContentText(message.getString("alert"));
+			.setContentText(message.getString("alert"))
+			.setTicker(message.getString("alert"))
+			.setLights(Color.MAGENTA, 200, 1000)
+			.setVibrate(new long[] { 1000, 200, 200, 200, 400, 1000 });
 		
 		builder.setContentIntent(notify);
         notificationManager.notify(99, builder.getNotification());
-	}
+        
+        PreferenceManager.getDefaultSharedPreferences(context).edit().putBoolean(PreferenceConstants.CONN_STARTUP, true).commit();	
+    }
     
     public static BroadcastReceiver registerDynamicBroadcastReceiver(Activity activity) {
     	
