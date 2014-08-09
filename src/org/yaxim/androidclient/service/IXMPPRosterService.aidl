@@ -29,6 +29,7 @@ interface IXMPPRosterService {
 	void syncContacts();
 	void searchContact(String name);
 	void sendWebToken(String token);
+	void setCompanies(in String[] companyKeys);
 	
 	/* callback methods */
 	

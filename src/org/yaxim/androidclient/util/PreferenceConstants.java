@@ -27,4 +27,5 @@ public class PreferenceConstants {
 	public final static String THEME = "theme";
 	public final static String NAME = "name";
 	public final static String SMS_CODE = "code";
+    public final static String COMPANIES = "companies";
 }

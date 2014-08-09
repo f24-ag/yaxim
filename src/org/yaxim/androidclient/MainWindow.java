@@ -7,8 +7,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.json.JSONObject;
 import org.yaxim.androidclient.IXMPPRosterCallback.Stub;
-import org.yaxim.androidclient.crypto.Crypto;
 import org.yaxim.androidclient.crypto.KeyAccessor;
 import org.yaxim.androidclient.data.ChatProvider;
 import org.yaxim.androidclient.data.ChatProvider.ChatConstants;
@@ -40,6 +40,7 @@ import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager.NameNotFoundException;
+import android.database.ContentObserver;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Build;
@@ -83,7 +84,7 @@ public class MainWindow extends SherlockFragmentActivity {
 	private ActionBar actionBar;
 	private String mTheme;
 	
-	private Handler mainHandler = new Handler();
+	private final Handler mainHandler = new Handler();
 	
 	private RosterTabFragment rosterTab;
 	private RoomsTabFragment roomsTab;
@@ -91,7 +92,7 @@ public class MainWindow extends SherlockFragmentActivity {
 	private BroadcastReceiver pushReceiver;
 
 	@Override
-	public void onCreate(Bundle savedInstanceState) {
+	public void onCreate(final Bundle savedInstanceState) {
 		Log.i(TAG, getString(R.string.build_version));
 		mConfig = YaximApplication.getConfig(this);
 		mTheme = mConfig.theme;
@@ -116,10 +117,11 @@ public class MainWindow extends SherlockFragmentActivity {
 		registerXMPPService();
 		createUICallback();
 		setContentView(R.layout.main);
+        getContentResolver().registerContentObserver( RosterProvider.COMPANIES_URI, true, new CompaniesObserver() );
 	}
 
 	public int getStatusActionIcon() {
-		boolean showOffline = !isConnected() || isConnecting()
+		final boolean showOffline = !isConnected() || isConnecting()
 					|| getStatusMode() == null;
 
 		if (showOffline) {
@@ -132,8 +134,9 @@ public class MainWindow extends SherlockFragmentActivity {
 	@Override
 	protected void onPause() {
 		super.onPause();
-		if (serviceAdapter != null)
-			serviceAdapter.unregisterUICallback(rosterCallback);
+		if (serviceAdapter != null) {
+            serviceAdapter.unregisterUICallback(rosterCallback);
+        }
 
 		YaximApplication.getApp(this).mMTM.unbindDisplayActivity(this);
 		unbindXMPPService();
@@ -146,12 +149,12 @@ public class MainWindow extends SherlockFragmentActivity {
 		super.onResume();
 		if (mConfig.theme.equals(mTheme) == false) {
 			// restart
-			Intent restartIntent = new Intent(this, MainWindow.class);
+			final Intent restartIntent = new Intent(this, MainWindow.class);
 			restartIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
 			startActivity(restartIntent);
 			finish();
 		}
-		FragmentManager fragmentManager = this.getSupportFragmentManager();
+		final FragmentManager fragmentManager = this.getSupportFragmentManager();
 		rosterTab = (RosterTabFragment)fragmentManager.findFragmentByTag("tab1");
 		roomsTab = (RoomsTabFragment)fragmentManager.findFragmentByTag("tab2");
 		
@@ -162,7 +165,8 @@ public class MainWindow extends SherlockFragmentActivity {
 
 		// handle imto:// intent after restoring service connection
 		mainHandler.post(new Runnable() {
-			public void run() {
+			@Override
+            public void run() {
 				 handleJabberIntent();
 			}});
 		// handle SEND action
@@ -172,8 +176,8 @@ public class MainWindow extends SherlockFragmentActivity {
 	}
 
 	public void handleSendIntent() {
-		Intent intent = getIntent();
-		String action = intent.getAction();
+		final Intent intent = getIntent();
+		final String action = intent.getAction();
 		if ((action != null) && (action.equals(Intent.ACTION_SEND))) {
 			showToastNotification(R.string.chooseContact);
 			setTitle(R.string.chooseContact);
@@ -189,7 +193,7 @@ public class MainWindow extends SherlockFragmentActivity {
 	}
 
 	void doMarkAllAsRead(final String JID) {
-		ContentValues values = new ContentValues();
+		final ContentValues values = new ContentValues();
 		values.put(ChatConstants.DELIVERY_STATUS, ChatConstants.DS_SENT_OR_READ);
 
 		getContentResolver().update(ChatProvider.CONTENT_URI, values,
@@ -210,7 +214,8 @@ public class MainWindow extends SherlockFragmentActivity {
 			.setMessage(getString(R.string.deleteChatHistory_text, userName, JID))
 			.setPositiveButton(android.R.string.yes,
 					new DialogInterface.OnClickListener() {
-						public void onClick(DialogInterface dialog, int which) {
+						@Override
+                        public void onClick(final DialogInterface dialog, final int which) {
 							removeChatHistory(JID);
 						}
 					})
@@ -224,7 +229,8 @@ public class MainWindow extends SherlockFragmentActivity {
 			.setMessage(getString(R.string.deleteRosterItem_text, userName, JID))
 			.setPositiveButton(android.R.string.yes,
 					new DialogInterface.OnClickListener() {
-						public void onClick(DialogInterface dialog, int which) {
+						@Override
+                        public void onClick(final DialogInterface dialog, final int which) {
 							serviceAdapter.removeRosterItem(JID);
 						}
 					})
@@ -232,7 +238,7 @@ public class MainWindow extends SherlockFragmentActivity {
 			.create().show();
 	}
 
-	boolean addToRosterDialog(String jid) {
+	boolean addToRosterDialog(final String jid) {
 		if (serviceAdapter != null && serviceAdapter.isAuthenticated()) {
 			new AddRosterItemDialog(this, serviceAdapter, jid).show();
 			return true;
@@ -242,20 +248,22 @@ public class MainWindow extends SherlockFragmentActivity {
 		}
 	}
 
-	void rosterAddRequestedDialog(final String jid, String message) {
+	void rosterAddRequestedDialog(final String jid, final String message) {
 		new AlertDialog.Builder(this)
 			.setTitle(R.string.subscriptionRequest_title)
 			.setMessage(getString(R.string.subscriptionRequest_text, jid, message))
 			.setPositiveButton(android.R.string.yes,
 					new DialogInterface.OnClickListener() {
-						public void onClick(DialogInterface dialog, int which) {
+						@Override
+                        public void onClick(final DialogInterface dialog, final int which) {
 							serviceAdapter.sendPresenceRequest(jid, "subscribed");
 							addToRosterDialog(jid);
 						}
 					})
 			.setNegativeButton(android.R.string.no, 
 					new DialogInterface.OnClickListener() {
-						public void onClick(DialogInterface dialog, int which) {
+						@Override
+                        public void onClick(final DialogInterface dialog, final int which) {
 							serviceAdapter.sendPresenceRequest(jid, "unsubscribed");
 						}
 					})
@@ -266,13 +274,13 @@ public class MainWindow extends SherlockFragmentActivity {
 		abstract public void ok(String result);
 	}
 
-	void editTextDialog(int titleId, CharSequence message, String text,
+	void editTextDialog(final int titleId, final CharSequence message, final String text,
 			final EditOk ok) {
-		LayoutInflater inflater = (LayoutInflater) getSystemService(LAYOUT_INFLATER_SERVICE);
-		View layout = inflater.inflate(R.layout.edittext_dialog,
+		final LayoutInflater inflater = (LayoutInflater) getSystemService(LAYOUT_INFLATER_SERVICE);
+		final View layout = inflater.inflate(R.layout.edittext_dialog,
 		                               (ViewGroup) findViewById(R.id.layout_root));
 
-		TextView messageView = (TextView) layout.findViewById(R.id.text);
+		final TextView messageView = (TextView) layout.findViewById(R.id.text);
 		messageView.setText(message);
 		final EditText input = (EditText) layout.findViewById(R.id.editText);
 		input.setTransformationMethod(android.text.method.SingleLineTransformationMethod.getInstance());
@@ -281,10 +289,12 @@ public class MainWindow extends SherlockFragmentActivity {
 			.setTitle(titleId)
 			.setView(layout)
 			.setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
-						public void onClick(DialogInterface dialog, int which) {
-							String newName = input.getText().toString();
-							if (newName.length() != 0)
-								ok.ok(newName);
+						@Override
+                        public void onClick(final DialogInterface dialog, final int which) {
+							final String newName = input.getText().toString();
+							if (newName.length() != 0) {
+                                ok.ok(newName);
+                            }
 						}})
 			.setNegativeButton(android.R.string.cancel, null)
 			.create().show();
@@ -294,7 +304,8 @@ public class MainWindow extends SherlockFragmentActivity {
 		editTextDialog(R.string.RenameEntry_title,
 				getString(R.string.RenameEntry_summ, userName, JID),
 				userName, new EditOk() {
-					public void ok(String result) {
+					@Override
+                    public void ok(final String result) {
 						serviceAdapter.renameRosterItem(JID, result);
 					}
 				});
@@ -304,16 +315,17 @@ public class MainWindow extends SherlockFragmentActivity {
 		editTextDialog(R.string.RenameGroup_title,
 				getString(R.string.RenameGroup_summ, groupName),
 				groupName, new EditOk() {
-					public void ok(String result) {
+					@Override
+                    public void ok(final String result) {
 						serviceAdapter.renameRosterGroup(groupName, result);
 					}
 				});
 	}
 	
 	void moveRosterItemToGroupDialog(final String jabberID) {
-		LayoutInflater inflater = (LayoutInflater)getSystemService(
+		final LayoutInflater inflater = (LayoutInflater)getSystemService(
 			      LAYOUT_INFLATER_SERVICE);
-		View group = inflater.inflate(R.layout.moverosterentrytogroupview, null, false);
+		final View group = inflater.inflate(R.layout.moverosterentrytogroupview, null, false);
 		final GroupNameView gv = (GroupNameView)group.findViewById(R.id.moverosterentrytogroupview_gv);
 		gv.setGroupList(rosterTab.getRosterGroups());
 		new AlertDialog.Builder(this)
@@ -321,7 +333,8 @@ public class MainWindow extends SherlockFragmentActivity {
 			.setView(group)
 			.setPositiveButton(android.R.string.ok,
 				new DialogInterface.OnClickListener() {
-					public void onClick(DialogInterface dialog, int which) {
+					@Override
+                    public void onClick(final DialogInterface dialog, final int which) {
 						Log.d(TAG, "new group: " + gv.getGroupName());
 						serviceAdapter.moveRosterItemToGroup(jabberID,
 								gv.getGroupName());
@@ -331,7 +344,8 @@ public class MainWindow extends SherlockFragmentActivity {
 			.create().show();
 	}
 
-	public boolean onContextItemSelected(MenuItem item) {
+	@Override
+    public boolean onContextItemSelected(final MenuItem item) {
 		if (item.getMenuInfo() instanceof ExpandableListContextMenuInfo) {
 			return applyMenuContextChoice(item);
 		}
@@ -340,13 +354,13 @@ public class MainWindow extends SherlockFragmentActivity {
 		}
 	}
 
-	private boolean applyRoomsMenuContextChoice(MenuItem item) {
-		int itemID = item.getItemId();
+	private boolean applyRoomsMenuContextChoice(final MenuItem item) {
+		final int itemID = item.getItemId();
 		if (getActiveTab() != null) {
 			switch (itemID) {
 			case R.id.rooms_close:
-				int position = ((AdapterContextMenuInfo)item.getMenuInfo()).position;
-				String roomID = roomsTab.getRoomId(position);
+				final int position = ((AdapterContextMenuInfo)item.getMenuInfo()).position;
+				final String roomID = roomsTab.getRoomId(position);
 				getContentResolver().delete(RosterProvider.PARTICIPANTS_URI, ParticipantConstants.ROOM + " = ?", new String[] { roomID });
 				getContentResolver().delete(RosterProvider.ROOMS_URI, RoomsConstants.ID + " = ?", new String[] { roomID });
 				return true;
@@ -355,22 +369,22 @@ public class MainWindow extends SherlockFragmentActivity {
 		return false;
 	}
 	
-	private boolean applyMenuContextChoice(MenuItem item) {
+	private boolean applyMenuContextChoice(final MenuItem item) {
 
-		ExpandableListContextMenuInfo contextMenuInfo = (ExpandableListContextMenuInfo) item
+		final ExpandableListContextMenuInfo contextMenuInfo = (ExpandableListContextMenuInfo) item
 				.getMenuInfo();
-		long packedPosition = contextMenuInfo.packedPosition;
+		final long packedPosition = contextMenuInfo.packedPosition;
 		if (rosterTab == null) {
 			rosterTab = (RosterTabFragment)getActiveTab();
 		}
 
 		if (rosterTab != null && rosterTab.isChild(packedPosition)) {
 
-			String userJid = rosterTab.getPackedItemRow(packedPosition, RosterConstants.JID);
-			String userName = rosterTab.getPackedItemRow(packedPosition, RosterConstants.ALIAS);
+			final String userJid = rosterTab.getPackedItemRow(packedPosition, RosterConstants.JID);
+			final String userName = rosterTab.getPackedItemRow(packedPosition, RosterConstants.ALIAS);
 			Log.d(TAG, "action for contact " + userName + "/" + userJid);
 
-			int itemID = item.getItemId();
+			final int itemID = item.getItemId();
 
 			switch (itemID) {
 			case R.id.roster_contextmenu_contact_open_chat:
@@ -408,8 +422,8 @@ public class MainWindow extends SherlockFragmentActivity {
 			}
 		} else {
 
-			int itemID = item.getItemId();
-			String seletedGroup = rosterTab.getPackedItemRow(packedPosition, RosterConstants.GROUP);
+			final int itemID = item.getItemId();
+			final String seletedGroup = rosterTab.getPackedItemRow(packedPosition, RosterConstants.GROUP);
 			Log.d(TAG, "action for group " + seletedGroup);
 
 			switch (itemID) {
@@ -423,10 +437,10 @@ public class MainWindow extends SherlockFragmentActivity {
 		return false;
 	}
 
-	public void startChatActivity(String user, String userName, String message) {
-		Intent chatIntent = new Intent(this,
+	public void startChatActivity(final String user, final String userName, final String message) {
+		final Intent chatIntent = new Intent(this,
 				org.yaxim.androidclient.chat.ChatWindow.class);
-		Uri userNameUri = Uri.parse(user);
+		final Uri userNameUri = Uri.parse(user);
 		chatIntent.setData(userNameUri);
 		chatIntent.putExtra(org.yaxim.androidclient.chat.ChatWindow.INTENT_EXTRA_USERNAME, userName);
 		if (message != null) {
@@ -436,21 +450,22 @@ public class MainWindow extends SherlockFragmentActivity {
 	}
 
 	@Override
-	public boolean onCreateOptionsMenu(Menu menu) {
+	public boolean onCreateOptionsMenu(final Menu menu) {
 		getSupportMenuInflater().inflate(R.menu.roster_options, menu);
 		return true;
 	}
 
-	void setMenuItem(Menu menu, int itemId, int iconId, CharSequence title) {
-		com.actionbarsherlock.view.MenuItem item = menu.findItem(itemId);
-		if (item == null)
-			return;
+	void setMenuItem(final Menu menu, final int itemId, final int iconId, final CharSequence title) {
+		final com.actionbarsherlock.view.MenuItem item = menu.findItem(itemId);
+		if (item == null) {
+            return;
+        }
 		item.setIcon(iconId);
 		item.setTitle(title);
 	}
 
 	@Override
-	public boolean onPrepareOptionsMenu(Menu menu) {
+	public boolean onPrepareOptionsMenu(final Menu menu) {
 		setMenuItem(menu, R.id.menu_connect, getConnectDisconnectIcon(),
 				getConnectDisconnectText());
 		//setMenuItem(menu, R.id.menu_show_hide, getShowHideMenuIcon(),
@@ -459,7 +474,7 @@ public class MainWindow extends SherlockFragmentActivity {
 	}
 
 	@Override
-	public boolean onOptionsItemSelected(com.actionbarsherlock.view.MenuItem item) {
+	public boolean onOptionsItemSelected(final com.actionbarsherlock.view.MenuItem item) {
 		return applyMainMenuChoice(item);
 	}
 
@@ -467,17 +482,19 @@ public class MainWindow extends SherlockFragmentActivity {
 		return StatusMode.fromString(mConfig.statusMode);
 	}
 
-	public void setAndSaveStatus(StatusMode statusMode, String message) {
-		SharedPreferences.Editor prefedit = PreferenceManager
+	public void setAndSaveStatus(final StatusMode statusMode, final String message) {
+		final SharedPreferences.Editor prefedit = PreferenceManager
 				.getDefaultSharedPreferences(this).edit();
 		// do not save "offline" to prefs, or else!
-		if (statusMode != StatusMode.offline)
-			prefedit.putString(PreferenceConstants.STATUS_MODE, statusMode.name());
+		if (statusMode != StatusMode.offline) {
+            prefedit.putString(PreferenceConstants.STATUS_MODE, statusMode.name());
+        }
 		if (!message.equals(mConfig.statusMessage)) {
-			List<String> smh = new ArrayList<String>(java.util.Arrays.asList(mConfig.statusMessageHistory));
-			if (!smh.contains(message))
-				smh.add(message);
-			String smh_joined = android.text.TextUtils.join("\036", smh);
+			final List<String> smh = new ArrayList<String>(java.util.Arrays.asList(mConfig.statusMessageHistory));
+			if (!smh.contains(message)) {
+                smh.add(message);
+            }
+			final String smh_joined = android.text.TextUtils.join("\036", smh);
 			prefedit.putString(PreferenceConstants.STATUS_MESSAGE_HISTORY, smh_joined);
 		}
 		prefedit.putString(PreferenceConstants.STATUS_MESSAGE, message);
@@ -486,15 +503,16 @@ public class MainWindow extends SherlockFragmentActivity {
 		displayOwnStatus();
 
 		// check if we are connected and want to go offline
-		boolean needToDisconnect = (statusMode == StatusMode.offline) && isConnected();
+		final boolean needToDisconnect = (statusMode == StatusMode.offline) && isConnected();
 		// check if we want to reconnect
-		boolean needToConnect = (statusMode != StatusMode.offline) &&
+		final boolean needToConnect = (statusMode != StatusMode.offline) &&
 				serviceAdapter.getConnectionState() == ConnectionState.OFFLINE;
 
-		if (needToConnect || needToDisconnect)
-			toggleConnection();
-		else if (isConnected())
-			serviceAdapter.setStatusFromConfig();
+		if (needToConnect || needToDisconnect) {
+            toggleConnection();
+        } else if (isConnected()) {
+            serviceAdapter.setStatusFromConfig();
+        }
 	}
 
 	private void displayOwnStatus() {
@@ -509,21 +527,22 @@ public class MainWindow extends SherlockFragmentActivity {
 	}
 
 	private void aboutDialog() {
-		LayoutInflater inflater = (LayoutInflater)getSystemService(
+		final LayoutInflater inflater = (LayoutInflater)getSystemService(
 			      LAYOUT_INFLATER_SERVICE);
-		View about = inflater.inflate(R.layout.aboutview, null, false);
+		final View about = inflater.inflate(R.layout.aboutview, null, false);
 		String versionTitle = getString(R.string.AboutDialog_title);
 		try {
-			PackageInfo pi = getPackageManager()
+			final PackageInfo pi = getPackageManager()
 						.getPackageInfo(getPackageName(), 0);
 			versionTitle += " v" + pi.versionName;
-		} catch (NameNotFoundException e) {
+		} catch (final NameNotFoundException e) {
 		}
 
 		// fix translator-credits: hide if unset, format otherwise
-		TextView tcv = (TextView)about.findViewById(R.id.translator_credits);
-		if (tcv.getText().equals("translator-credits"))
-			tcv.setVisibility(View.GONE);
+		final TextView tcv = (TextView)about.findViewById(R.id.translator_credits);
+		if (tcv.getText().equals("translator-credits")) {
+            tcv.setVisibility(View.GONE);
+        }
 
 		new AlertDialog.Builder(this)
 			.setTitle(versionTitle)
@@ -531,13 +550,14 @@ public class MainWindow extends SherlockFragmentActivity {
 			.setView(about)
 			.setPositiveButton(android.R.string.ok, null)
 			.setNeutralButton(R.string.AboutDialog_Vote, new DialogInterface.OnClickListener() {
-				public void onClick(DialogInterface dialog, int item) {
-					Intent market = new Intent(Intent.ACTION_VIEW,
+				@Override
+                public void onClick(final DialogInterface dialog, final int item) {
+					final Intent market = new Intent(Intent.ACTION_VIEW,
 						Uri.parse("market://details?id=" + getPackageName()));
 					market.addFlags(Intent.FLAG_ACTIVITY_NO_HISTORY | Intent.FLAG_ACTIVITY_CLEAR_WHEN_TASK_RESET);
 					try {
 						startActivity(market);
-					} catch (Exception e) {
+					} catch (final Exception e) {
 						// do not crash
 						Log.e(TAG, "could not go to market: " + e);
 					}
@@ -546,10 +566,10 @@ public class MainWindow extends SherlockFragmentActivity {
 			.create().show();
 	}
 
-	private boolean applyMainMenuChoice(com.actionbarsherlock.view.MenuItem item) {
+	private boolean applyMainMenuChoice(final com.actionbarsherlock.view.MenuItem item) {
 
-		int itemID = item.getItemId();
-		String name = mConfig.jabberID;
+		final int itemID = item.getItemId();
+		final String name = mConfig.jabberID;
 
 		switch (itemID) {
 		case R.id.menu_connect:
@@ -609,33 +629,35 @@ public class MainWindow extends SherlockFragmentActivity {
 
 	/** Sets if all contacts are shown in the roster or online contacts only. */
 	@TargetApi(Build.VERSION_CODES.HONEYCOMB) // required for Sherlock's invalidateOptionsMenu */
-	private void setOfflineContactsVisibility(boolean showOffline) {
+	private void setOfflineContactsVisibility(final boolean showOffline) {
 		PreferenceManager.getDefaultSharedPreferences(this).edit().
 			putBoolean(PreferenceConstants.SHOW_OFFLINE, showOffline).commit();
 		invalidateOptionsMenu();
 	}
 
-	private void updateConnectionState(ConnectionState cs) {
+	private void updateConnectionState(final ConnectionState cs) {
 		Log.d(TAG, "updateConnectionState: " + cs);
 		displayOwnStatus();
-		Fragment activeTab = getActiveTab();
+		final Fragment activeTab = getActiveTab();
 		if (activeTab == null || activeTab.getView() == null) {
 			return;
 		}
-		TextView mConnectingText = (TextView)activeTab.getView().findViewById(R.id.error_view);
+		final TextView mConnectingText = (TextView)activeTab.getView().findViewById(R.id.error_view);
 		boolean spinTheSpinner = false;
 		switch (cs) {
 		case CONNECTING:
 		case DISCONNECTING:
 			spinTheSpinner = true;
+            //$FALL-THROUGH$
 		case DISCONNECTED:
 		case RECONNECT_NETWORK:
 		case RECONNECT_DELAYED:
 		case OFFLINE:
-			if (cs == ConnectionState.OFFLINE) // override with "Offline" string, no error message
-				mConnectingText.setText(R.string.conn_offline);
-			else
-				mConnectingText.setText(serviceAdapter.getConnectionStateString());
+			if (cs == ConnectionState.OFFLINE) {
+                mConnectingText.setText(R.string.conn_offline);
+            } else {
+                mConnectingText.setText(serviceAdapter.getConnectionStateString());
+            }
 			mConnectingText.setVisibility(View.VISIBLE);
 			setSupportProgressBarIndeterminateVisibility(spinTheSpinner);
 			break;
@@ -645,7 +667,7 @@ public class MainWindow extends SherlockFragmentActivity {
 		}
 	}
 	
-	public void startConnection(boolean create_account) {
+	public void startConnection(final boolean create_account) {
 		xmppServiceIntent.putExtra("create_account", create_account);
 		startService(xmppServiceIntent);
 	}
@@ -657,15 +679,16 @@ public class MainWindow extends SherlockFragmentActivity {
 			startActivity(new Intent(this, AccountPrefs.class));
 			return;
 		}
-		boolean oldState = isConnected() || isConnecting();
+		final boolean oldState = isConnected() || isConnecting();
 
 		PreferenceManager.getDefaultSharedPreferences(this).edit().
 			putBoolean(PreferenceConstants.CONN_STARTUP, !oldState).commit();
 		if (oldState) {
 			serviceAdapter.disconnect();
 			stopService(xmppServiceIntent);
-		} else
-			startConnection(false);
+		} else {
+            startConnection(false);
+        }
 	}
 
 	private int getConnectDisconnectIcon() {
@@ -689,8 +712,9 @@ public class MainWindow extends SherlockFragmentActivity {
 
 		xmppServiceConnection = new ServiceConnection() {
 
-			@TargetApi(Build.VERSION_CODES.HONEYCOMB) // required for Sherlock's invalidateOptionsMenu */
-			public void onServiceConnected(ComponentName name, IBinder service) {
+			@Override
+            @TargetApi(Build.VERSION_CODES.HONEYCOMB) // required for Sherlock's invalidateOptionsMenu */
+			public void onServiceConnected(final ComponentName name, final IBinder service) {
 				Log.i(TAG, "called onServiceConnected()");
 				serviceAdapter = new XMPPRosterServiceAdapter(
 						IXMPPRosterService.Stub.asInterface(service));
@@ -698,7 +722,7 @@ public class MainWindow extends SherlockFragmentActivity {
 				Log.i(TAG, "getConnectionState(): "
 						+ serviceAdapter.getConnectionState());
 				invalidateOptionsMenu();	// to load the action bar contents on time for access to icons/progressbar
-				ConnectionState cs = serviceAdapter.getConnectionState();
+				final ConnectionState cs = serviceAdapter.getConnectionState();
 				updateConnectionState(cs);
 				
 				if (rosterTab != null) {
@@ -710,11 +734,13 @@ public class MainWindow extends SherlockFragmentActivity {
 					// login config changed, force reconnection
 					serviceAdapter.disconnect();
 					serviceAdapter.connect();
-				} else if (mConfig.presence_required && isConnected())
-					serviceAdapter.setStatusFromConfig();
+				} else if (mConfig.presence_required && isConnected()) {
+                    serviceAdapter.setStatusFromConfig();
+                }
 			}
 
-			public void onServiceDisconnected(ComponentName name) {
+			@Override
+            public void onServiceDisconnected(final ComponentName name) {
 				Log.i(TAG, "called onServiceDisconnected()");
 			}
 		};
@@ -723,7 +749,7 @@ public class MainWindow extends SherlockFragmentActivity {
 	private void unbindXMPPService() {
 		try {
 			unbindService(xmppServiceConnection);
-		} catch (IllegalArgumentException e) {
+		} catch (final IllegalArgumentException e) {
 			Log.e(TAG, "Service wasn't bound!");
 		}
 	}
@@ -738,9 +764,10 @@ public class MainWindow extends SherlockFragmentActivity {
 			public void connectionStateChanged(final int connectionstate)
 						throws RemoteException {
 				mainHandler.post(new Runnable() {
-					@TargetApi(Build.VERSION_CODES.HONEYCOMB) // required for Sherlock's invalidateOptionsMenu */
+					@Override
+                    @TargetApi(Build.VERSION_CODES.HONEYCOMB) // required for Sherlock's invalidateOptionsMenu */
 					public void run() {
-						ConnectionState cs = ConnectionState.values()[connectionstate];
+						final ConnectionState cs = ConnectionState.values()[connectionstate];
 						//Log.d(TAG, "connectionStatusChanged: " + cs);
 						updateConnectionState(cs);
 						invalidateOptionsMenu();
@@ -759,9 +786,9 @@ public class MainWindow extends SherlockFragmentActivity {
 			PreferenceManager.setDefaultValues(this, R.layout.accountprefs, false);
 
 			// prevent a start-up with empty JID
-			SecureRandom random = new SecureRandom();
-			String ressource = new BigInteger(64, random).toString(32);
-			SharedPreferences prefs = PreferenceManager
+			final SecureRandom random = new SecureRandom();
+			final String ressource = new BigInteger(64, random).toString(32);
+			final SharedPreferences prefs = PreferenceManager
 					.getDefaultSharedPreferences(this);
 			prefs.edit().putBoolean(PreferenceConstants.CONN_STARTUP, true)
 				.putString(PreferenceConstants.JID, KeyAccessor.NEW_USER)
@@ -774,14 +801,14 @@ public class MainWindow extends SherlockFragmentActivity {
 		}
 	}
 
-	public static Intent createIntent(Context context) {
-		Intent i = new Intent(context, MainWindow.class);
+	public static Intent createIntent(final Context context) {
+		final Intent i = new Intent(context, MainWindow.class);
 		i.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
 		return i;
 	}
 
-	protected void showToastNotification(int message) {
-		Toast tmptoast = Toast.makeText(this, message, Toast.LENGTH_SHORT);
+	protected void showToastNotification(final int message) {
+		final Toast tmptoast = Toast.makeText(this, message, Toast.LENGTH_SHORT);
 		tmptoast.show();
 	}
 
@@ -792,16 +819,16 @@ public class MainWindow extends SherlockFragmentActivity {
 	}
 	
 	public void handleJabberIntent() {
-		Intent intent = getIntent();
-		String action = intent.getAction();
-		Uri data = intent.getData();
+		final Intent intent = getIntent();
+		final String action = intent.getAction();
+		final Uri data = intent.getData();
 		if ((action != null) && (action.equals(Intent.ACTION_SENDTO))
 				&& data != null && data.getHost().equals("jabber")) {
-			String jid = data.getPathSegments().get(0);
+			final String jid = data.getPathSegments().get(0);
 			Log.d(TAG, "handleJabberIntent: " + jid);
 
-			List<String[]> contacts = rosterTab.getRosterContacts();
-			for (String[] c : contacts) {
+			final List<String[]> contacts = rosterTab.getRosterContacts();
+			for (final String[] c : contacts) {
 				if (jid.equalsIgnoreCase(c[0])) {
 					// found it
 					startChatActivity(c[0], c[1], null);
@@ -810,8 +837,9 @@ public class MainWindow extends SherlockFragmentActivity {
 				}
 			}
 			// did not find in roster, try to add
-			if (!addToRosterDialog(jid))
-				finish();
+			if (!addToRosterDialog(jid)) {
+                finish();
+            }
 		}
 	}
 	
@@ -824,7 +852,7 @@ public class MainWindow extends SherlockFragmentActivity {
 	}
 	
 	public Fragment getActiveTab() {
-		FragmentManager fragmentManager = this.getSupportFragmentManager();
+		final FragmentManager fragmentManager = this.getSupportFragmentManager();
 		rosterTab = (RosterTabFragment)fragmentManager.findFragmentByTag("tab1");
 		roomsTab = (RoomsTabFragment)fragmentManager.findFragmentByTag("tab2");
 		return rosterTab != null && rosterTab.isVisible() ? rosterTab : roomsTab;
@@ -834,7 +862,7 @@ public class MainWindow extends SherlockFragmentActivity {
 		final List<String> jids = new ArrayList<String>();
 		final List<String> names = new ArrayList<String>();
 		final Set<String> selectedJids = new HashSet<String>();
-		Cursor c = getContentResolver().query(RosterProvider.CONTENT_URI, new String[] { RosterConstants.JID, RosterConstants.ALIAS }, 
+		final Cursor c = getContentResolver().query(RosterProvider.CONTENT_URI, new String[] { RosterConstants.JID, RosterConstants.ALIAS }, 
 				null, null, RosterConstants.ALIAS);
 		while (c.moveToNext()) {
 			jids.add(c.getString(0));
@@ -844,7 +872,7 @@ public class MainWindow extends SherlockFragmentActivity {
 			.setTitle(R.string.rooms_participants)
 			.setMultiChoiceItems(names.toArray(new String[]{}), null, new DialogInterface.OnMultiChoiceClickListener() {
                @Override
-               public void onClick(DialogInterface dialog, int which, boolean isChecked) {
+               public void onClick(final DialogInterface dialog, final int which, final boolean isChecked) {
                    if (isChecked) {
                        selectedJids.add(jids.get(which));
                    } else {
@@ -854,7 +882,8 @@ public class MainWindow extends SherlockFragmentActivity {
            })
 		.setPositiveButton(android.R.string.ok,
 				new DialogInterface.OnClickListener() {
-					public void onClick(DialogInterface dialog, int which) {
+					@Override
+                    public void onClick(final DialogInterface dialog, final int which) {
 						addRoomDialog2(selectedJids);
 					}
 				})
@@ -869,7 +898,8 @@ public class MainWindow extends SherlockFragmentActivity {
 		.setView(input)
 		.setPositiveButton(android.R.string.ok,
 				new DialogInterface.OnClickListener() {
-					public void onClick(DialogInterface dialog, int which) {
+					@Override
+                    public void onClick(final DialogInterface dialog, final int which) {
 						openRoom(input.getText().toString(), participants);
 					}
 				})
@@ -877,7 +907,7 @@ public class MainWindow extends SherlockFragmentActivity {
 		.create().show();
 	}
 
-	public void openRoom(String title, final Set<String> participants) {
+	public void openRoom(final String title, final Set<String> participants) {
 		serviceAdapter.openRoom(null, title, participants);
 	}
 	
@@ -889,13 +919,14 @@ public class MainWindow extends SherlockFragmentActivity {
 		.setView(input)
 		.setPositiveButton(android.R.string.ok,
 				new DialogInterface.OnClickListener() {
-					public void onClick(DialogInterface dialog, int which) {
+					@Override
+                    public void onClick(final DialogInterface dialog, final int which) {
 						try {
 							YaximApplication.getApp(MainWindow.this).mCrypto.generateKeys(KeyAccessor.NEW_USER);
 							serviceAdapter.sendRegistrationMessage1(input.getText().toString());
 							new FirstStartDialog(MainWindow.this, serviceAdapter).show();
 						}
-						catch (Exception ex) {
+						catch (final Exception ex) {
 							Toast.makeText(MainWindow.this, "Registration failed", Toast.LENGTH_SHORT).show();
 						}
 					}
@@ -905,7 +936,17 @@ public class MainWindow extends SherlockFragmentActivity {
 	}
 	
 	private void syncAddressBook() {
-		serviceAdapter.syncContacts();
+
+        final AlertDialog.Builder builder = new AlertDialog.Builder( this );
+        builder.setMessage( R.string.rooms_sync_confirm ).setPositiveButton( android.R.string.yes,
+                new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick( final DialogInterface dialog, final int which ) {
+
+                        serviceAdapter.syncContacts();
+                    }
+                } )
+                .setNegativeButton( android.R.string.no, null ).create().show();
 	}
 	
 	private void addContact() {
@@ -915,7 +956,8 @@ public class MainWindow extends SherlockFragmentActivity {
 		.setView(input)
 		.setPositiveButton(android.R.string.ok,
 				new DialogInterface.OnClickListener() {
-					public void onClick(DialogInterface dialog, int which) {
+					@Override
+                    public void onClick(final DialogInterface dialog, final int which) {
 						serviceAdapter.searchContact(input.getText().toString());
 					}
 				})
@@ -923,22 +965,74 @@ public class MainWindow extends SherlockFragmentActivity {
 		.create().show();
 	}
 	
-	@TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR1)
 	private void generateWebLoginToken() {
-		SecureRandom random = new SecureRandom();
-		String token = new BigInteger(24, random).toString(32);
+		final SecureRandom random = new SecureRandom();
+		final String token = new BigInteger(24, random).toString(32);
 		serviceAdapter.sendWebToken(token);
 
-		AlertDialog dialog = new AlertDialog.Builder(this)
+		final AlertDialog dialog = new AlertDialog.Builder(this)
 			.setTitle(R.string.Menu_webLogin)
 			.setMessage(token)
 			.setPositiveButton(android.R.string.ok, null)
 			.create();
 		dialog.show();
 		
-		TextView messageText = (TextView)dialog.findViewById(android.R.id.message);
+		final TextView messageText = (TextView)dialog.findViewById(android.R.id.message);
 		messageText.setTextSize(50);
 		messageText.setGravity(Gravity.CENTER);
 	}
+
+    class CompaniesObserver extends ContentObserver {
+        public CompaniesObserver() {
+            super( getHandler() );
+        }
+
+        @Override
+        public void onChange( final boolean selfChange ) {
+
+            final List< String > names = new ArrayList< String >();
+            final List< String > keys = new ArrayList< String >();
+            final List< String > selectedKeys = new ArrayList< String >();
+            final SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences( MainWindow.this );
+            try {
+                final JSONObject jsonObject = new JSONObject( prefs.getString( PreferenceConstants.COMPANIES, "" ) );
+                final boolean[] selectedIndexes = new boolean[jsonObject.getJSONArray( "companies" ).length()];
+                for (int i = 0; i < jsonObject.getJSONArray( "companies" ).length(); i++) {
+                    final JSONObject company = jsonObject.getJSONArray( "companies" ).getJSONObject( i );
+                    names.add( company.getString( "name" ) );
+                    keys.add(company.getString( "key" ));
+                    selectedIndexes[i] = true;
+                }
+                new AlertDialog.Builder( MainWindow.this )
+                        .setTitle( R.string.rooms_companies )
+                        .setMultiChoiceItems( names.toArray( new String[] {} ), selectedIndexes,
+                                new DialogInterface.OnMultiChoiceClickListener() {
+                                    @Override
+                                    public void onClick( final DialogInterface dialog, final int which,
+                                            final boolean isChecked ) {
+                                        if ( isChecked ) {
+                                            selectedKeys.add( keys.get( which ) );
+                                        } else {
+                                            selectedKeys.remove( keys.get( which ) );
+                                        }
+                                    }
+                                } )
+                        .setPositiveButton( android.R.string.ok,
+                                new DialogInterface.OnClickListener() {
+                                    @Override
+                                    public void onClick( final DialogInterface dialog, final int which ) {
+
+                                        prefs.edit().remove( PreferenceConstants.COMPANIES ).commit();
+                                        serviceAdapter.setCompanies( selectedKeys );
+                                        syncAddressBook();
+                                    }
+                                } )
+                        .setNegativeButton( android.R.string.cancel, null )
+                        .create().show();
+            } catch ( final Exception ex ) {
+                Log.w( ex.getMessage(), ex );
+            }
+        }
+    }
 
 }

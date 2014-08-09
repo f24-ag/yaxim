@@ -257,4 +257,6 @@
 	<string name="rooms.singlechat">Gespräch mit %s anfangen?</string>
 	<string name="rooms.taskRecipient">Empfänger auswählen</string>
 	<string name="rooms.taskTitle">Aufgabe:</string>
+	<string name="rooms.companies">Bitte Ihre Firmenzugehörigkeit bestätigen:</string>
+	<string name="rooms.sync_confirm">Ihre Kontaktliste mit Rooms abgleichen?</string>
 </resources>

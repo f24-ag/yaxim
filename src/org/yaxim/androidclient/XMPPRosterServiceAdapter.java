@@ -1,21 +1,20 @@
 package org.yaxim.androidclient;
 
 import java.util.Collection;
+import java.util.List;
 
+import org.yaxim.androidclient.service.IXMPPRosterService;
 import org.yaxim.androidclient.util.ConnectionState;
 
 import android.os.RemoteException;
 import android.util.Log;
 
-import org.yaxim.androidclient.IXMPPRosterCallback;
-import org.yaxim.androidclient.service.IXMPPRosterService;
-
 	
 public class XMPPRosterServiceAdapter {
 	private static final String TAG = "yaxim.XMPPRSAdapter";
-	private IXMPPRosterService xmppServiceStub;
+	private final IXMPPRosterService xmppServiceStub;
 	
-	public XMPPRosterServiceAdapter(IXMPPRosterService xmppServiceStub) {
+	public XMPPRosterServiceAdapter(final IXMPPRosterService xmppServiceStub) {
 		Log.i(TAG, "New XMPPRosterServiceAdapter construced");
 		this.xmppServiceStub = xmppServiceStub;
 	}
@@ -23,56 +22,56 @@ public class XMPPRosterServiceAdapter {
 	public void setStatusFromConfig() {
 		try {
 			xmppServiceStub.setStatusFromConfig();
-		} catch (RemoteException e) {
+		} catch (final RemoteException e) {
 			e.printStackTrace();
 		}
 	}
 
-	public void addRosterItem(String user, String alias, String group) {
+	public void addRosterItem(final String user, final String alias, final String group) {
 		try {
 			xmppServiceStub.addRosterItem(user, alias, group);
-		} catch (RemoteException e) {
+		} catch (final RemoteException e) {
 			e.printStackTrace();
 		}
 	}
 	
-	public void renameRosterGroup(String group, String newGroup){
+	public void renameRosterGroup(final String group, final String newGroup){
 		try {
 			xmppServiceStub.renameRosterGroup(group, newGroup);
-		} catch (RemoteException e) {
+		} catch (final RemoteException e) {
 			e.printStackTrace();
 		}
 	}
 	
-	public void renameRosterItem(String contact, String newItemName){
+	public void renameRosterItem(final String contact, final String newItemName){
 		try {
 			xmppServiceStub.renameRosterItem(contact, newItemName);
-		} catch (RemoteException e) {
+		} catch (final RemoteException e) {
 			e.printStackTrace();
 		}
 	}
 	
 	
-	public void moveRosterItemToGroup(String user, String group){
+	public void moveRosterItemToGroup(final String user, final String group){
 		try {
 			xmppServiceStub.moveRosterItemToGroup(user, group);
-		} catch (RemoteException e) {
+		} catch (final RemoteException e) {
 			e.printStackTrace();
 		}
 	}
 	
-	public void addRosterGroup(String group){
+	public void addRosterGroup(final String group){
 		try {
 			xmppServiceStub.addRosterGroup(group);
-		} catch (RemoteException e) {
+		} catch (final RemoteException e) {
 			e.printStackTrace();
 		}
 	}
 	
-	public void removeRosterItem(String user) {
+	public void removeRosterItem(final String user) {
 		try {
 			xmppServiceStub.removeRosterItem(user);
-		} catch (RemoteException e) {
+		} catch (final RemoteException e) {
 			e.printStackTrace();
 		}
 	}
@@ -80,7 +79,7 @@ public class XMPPRosterServiceAdapter {
 	public void disconnect() {
 		try {
 			xmppServiceStub.disconnect();
-		} catch (RemoteException e) {
+		} catch (final RemoteException e) {
 			e.printStackTrace();
 		}
 	}
@@ -88,27 +87,27 @@ public class XMPPRosterServiceAdapter {
 	public void connect() {
 		try {
 			xmppServiceStub.connect();
-		} catch (RemoteException e) {
+		} catch (final RemoteException e) {
 			e.printStackTrace();
 		}
 	}
 
-	public void registerUICallback(IXMPPRosterCallback uiCallback) {
+	public void registerUICallback(final IXMPPRosterCallback uiCallback) {
 		try {
 			xmppServiceStub.registerRosterCallback(uiCallback);
-		} catch (RemoteException e) {
+		} catch (final RemoteException e) {
 			e.printStackTrace();
-		} catch (NullPointerException e) {
+		} catch (final NullPointerException e) {
 			e.printStackTrace();
 		}
 	}
 
-	public void unregisterUICallback(IXMPPRosterCallback uiCallback) {
+	public void unregisterUICallback(final IXMPPRosterCallback uiCallback) {
 		try {
 			xmppServiceStub.unregisterRosterCallback(uiCallback);
-		} catch (RemoteException e) {
+		} catch (final RemoteException e) {
 			e.printStackTrace();
-		} catch (NullPointerException e) {
+		} catch (final NullPointerException e) {
 			e.printStackTrace();
 		}
 	}
@@ -116,7 +115,7 @@ public class XMPPRosterServiceAdapter {
 	public ConnectionState getConnectionState() {
 		try {
 			return ConnectionState.values()[xmppServiceStub.getConnectionState()];
-		} catch (RemoteException e) {
+		} catch (final RemoteException e) {
 			e.printStackTrace();
 		}
 		return ConnectionState.OFFLINE;
@@ -125,7 +124,7 @@ public class XMPPRosterServiceAdapter {
 	public String getConnectionStateString() {
 		try {
 			return xmppServiceStub.getConnectionStateString();
-		} catch (RemoteException e) {
+		} catch (final RemoteException e) {
 			e.printStackTrace();
 		}
 		return null;
@@ -135,34 +134,34 @@ public class XMPPRosterServiceAdapter {
 		return getConnectionState() == ConnectionState.ONLINE;
 	}
 
-	public void sendPresenceRequest(String user, String type) {
+	public void sendPresenceRequest(final String user, final String type) {
 		try {
 			xmppServiceStub.sendPresenceRequest(user, type);
-		} catch (RemoteException e) {
+		} catch (final RemoteException e) {
 			e.printStackTrace();
 		}
 	}
 	
-	public void openRoom(String parentRoomID, String topic, Collection<String> participantJids) {
+	public void openRoom(final String parentRoomID, final String topic, final Collection<String> participantJids) {
 		try {
 			xmppServiceStub.openRoom(parentRoomID, topic, participantJids.toArray(new String[] {}));
-		} catch (RemoteException e) {
+		} catch (final RemoteException e) {
 			e.printStackTrace();
 		}
 	}
 
-	public void sendRegistrationMessage1(String phoneNumber) {
+	public void sendRegistrationMessage1(final String phoneNumber) {
 		try {
 			xmppServiceStub.sendRegistrationMessage1(phoneNumber);
-		} catch (RemoteException e) {
+		} catch (final RemoteException e) {
 			e.printStackTrace();
 		}
 	}
 
-	public void sendRegistrationMessage2(String code, String publicKey) {
+	public void sendRegistrationMessage2(final String code, final String publicKey) {
 		try {
 			xmppServiceStub.sendRegistrationMessage2(code, publicKey);
-		} catch (RemoteException e) {
+		} catch (final RemoteException e) {
 			e.printStackTrace();
 		}
 	}
@@ -170,24 +169,33 @@ public class XMPPRosterServiceAdapter {
 	public void syncContacts() {
 		try {
 			xmppServiceStub.syncContacts();
-		} catch (RemoteException e) {
+		} catch (final RemoteException e) {
 			e.printStackTrace();
 		}
 	}
 
-	public void searchContact(String name) {
+	public void searchContact(final String name) {
 		try {
 			xmppServiceStub.searchContact(name);
-		} catch (RemoteException e) {
+		} catch (final RemoteException e) {
 			e.printStackTrace();
 		}
 	}
 
-	public void sendWebToken(String token) {
+	public void sendWebToken(final String token) {
 		try {
 			xmppServiceStub.sendWebToken(token);
-		} catch (RemoteException e) {
+		} catch (final RemoteException e) {
 			e.printStackTrace();
 		}
 	}
+
+    public void setCompanies( final List< String > selectedKeys ) {
+
+        try {
+            xmppServiceStub.setCompanies( selectedKeys.toArray( new String[] {} ) );
+        } catch ( final RemoteException e ) {
+            e.printStackTrace();
+        }
+    }
 }

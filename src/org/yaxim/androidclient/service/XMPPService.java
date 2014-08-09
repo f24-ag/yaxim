@@ -39,6 +39,7 @@ import android.preference.PreferenceManager;
 import android.provider.ContactsContract;
 import android.util.Log;
 import de.f24.rooms.crypto.EncryptionException;
+import de.f24.rooms.messages.CompanyAffiliationResponse;
 import de.f24.rooms.messages.ContactSearch;
 import de.f24.rooms.messages.ContactSync;
 import de.f24.rooms.messages.FileMessage;
@@ -53,15 +54,15 @@ import de.f24.rooms.messages.WebLoginToken;
 
 public class XMPPService extends GenericService {
 
-	private AtomicBoolean mConnectionDemanded = new AtomicBoolean(false); // should we try to reconnect?
+	private final AtomicBoolean mConnectionDemanded = new AtomicBoolean(false); // should we try to reconnect?
 	private static final int RECONNECT_AFTER = 5;
 	private static final int RECONNECT_MAXIMUM = 10*60;
 	private static final String RECONNECT_ALARM = "org.yaxim.androidclient.RECONNECT_ALARM";
 	private int mReconnectTimeout = RECONNECT_AFTER;
 	private String mReconnectInfo = "";
-	private Intent mAlarmIntent = new Intent(RECONNECT_ALARM);
+	private final Intent mAlarmIntent = new Intent(RECONNECT_ALARM);
 	private PendingIntent mPAlarmIntent;
-	private BroadcastReceiver mAlarmReceiver = new ReconnectAlarmReceiver();
+	private final BroadcastReceiver mAlarmReceiver = new ReconnectAlarmReceiver();
 
 	private ServiceNotification mServiceNotification = null;
 
@@ -70,14 +71,14 @@ public class XMPPService extends GenericService {
 	private IXMPPRosterService.Stub mService2RosterConnection;
 	private IXMPPChatService.Stub mServiceChatConnection;
 
-	private RemoteCallbackList<IXMPPRosterCallback> mRosterCallbacks = new RemoteCallbackList<IXMPPRosterCallback>();
-	private HashSet<String> mIsBoundTo = new HashSet<String>();
-	private Handler mMainHandler = new Handler();
+	private final RemoteCallbackList<IXMPPRosterCallback> mRosterCallbacks = new RemoteCallbackList<IXMPPRosterCallback>();
+	private final HashSet<String> mIsBoundTo = new HashSet<String>();
+	private final Handler mMainHandler = new Handler();
 
 	@Override
-	public IBinder onBind(Intent intent) {
+	public IBinder onBind(final Intent intent) {
 		super.onBind(intent);
-		String chatPartner = intent.getDataString();
+		final String chatPartner = intent.getDataString();
 		if ((chatPartner != null)) {
 			resetNotificationCounter(chatPartner);
 			mIsBoundTo.add(chatPartner);
@@ -88,9 +89,9 @@ public class XMPPService extends GenericService {
 	}
 
 	@Override
-	public void onRebind(Intent intent) {
+	public void onRebind(final Intent intent) {
 		super.onRebind(intent);
-		String chatPartner = intent.getDataString();
+		final String chatPartner = intent.getDataString();
 		if ((chatPartner != null)) {
 			mIsBoundTo.add(chatPartner);
 			resetNotificationCounter(chatPartner);
@@ -98,8 +99,8 @@ public class XMPPService extends GenericService {
 	}
 
 	@Override
-	public boolean onUnbind(Intent intent) {
-		String chatPartner = intent.getDataString();
+	public boolean onUnbind(final Intent intent) {
+		final String chatPartner = intent.getDataString();
 		if ((chatPartner != null)) {
 			mIsBoundTo.remove(chatPartner);
 		}
@@ -124,7 +125,7 @@ public class XMPPService extends GenericService {
 			 * start our own service so it remains in background even when
 			 * unbound
 			 */
-			Intent xmppServiceIntent = new Intent(this, XMPPService.class);
+			final Intent xmppServiceIntent = new Intent(this, XMPPService.class);
 			startService(xmppServiceIntent);
 		}
 
@@ -145,7 +146,7 @@ public class XMPPService extends GenericService {
 	}
 
 	@Override
-	public int onStartCommand(Intent intent, int flags, int startId) {
+	public int onStartCommand(final Intent intent, final int flags, final int startId) {
 		logInfo("onStartCommand(), mConnectionDemanded=" + mConnectionDemanded.get());
 		if (intent != null) {
 			create_account = intent.getBooleanExtra("create_account", false);
@@ -178,27 +179,27 @@ public class XMPPService extends GenericService {
 	
 	public void syncContacts() {
 		final Crypto crypto = YaximApplication.getApp(getApplicationContext()).mCrypto;
-		Uri CONTENT_URI = ContactsContract.Contacts.CONTENT_URI;
-		String _ID = ContactsContract.Contacts._ID;
-		String DISPLAY_NAME = ContactsContract.Contacts.DISPLAY_NAME;
-		String HAS_PHONE_NUMBER = ContactsContract.Contacts.HAS_PHONE_NUMBER;
+		final Uri CONTENT_URI = ContactsContract.Contacts.CONTENT_URI;
+		final String _ID = ContactsContract.Contacts._ID;
+		final String DISPLAY_NAME = ContactsContract.Contacts.DISPLAY_NAME;
+		final String HAS_PHONE_NUMBER = ContactsContract.Contacts.HAS_PHONE_NUMBER;
 
-		Uri PhoneCONTENT_URI = ContactsContract.CommonDataKinds.Phone.CONTENT_URI;
-		String Phone_CONTACT_ID = ContactsContract.CommonDataKinds.Phone.CONTACT_ID;
-		String NUMBER = ContactsContract.CommonDataKinds.Phone.NUMBER;
+		final Uri PhoneCONTENT_URI = ContactsContract.CommonDataKinds.Phone.CONTENT_URI;
+		final String Phone_CONTACT_ID = ContactsContract.CommonDataKinds.Phone.CONTACT_ID;
+		final String NUMBER = ContactsContract.CommonDataKinds.Phone.NUMBER;
 		
-		List<String> phones = new ArrayList<String>();
-		ContentResolver contentResolver = getContentResolver();
-		Cursor cursor = contentResolver.query(CONTENT_URI, null, null, null, null);	
+		final List<String> phones = new ArrayList<String>();
+		final ContentResolver contentResolver = getContentResolver();
+		final Cursor cursor = contentResolver.query(CONTENT_URI, null, null, null, null);	
 		// Loop for every contact in the phone
 		if (cursor.getCount() > 0) {
 			while (cursor.moveToNext()) {
-				String contact_id = cursor.getString(cursor.getColumnIndex(_ID));
-				String name = cursor.getString(cursor.getColumnIndex(DISPLAY_NAME));
-				int hasPhoneNumber = Integer.parseInt(cursor.getString(cursor.getColumnIndex(HAS_PHONE_NUMBER)));
+				final String contact_id = cursor.getString(cursor.getColumnIndex(_ID));
+				final String name = cursor.getString(cursor.getColumnIndex(DISPLAY_NAME));
+				final int hasPhoneNumber = Integer.parseInt(cursor.getString(cursor.getColumnIndex(HAS_PHONE_NUMBER)));
 				if (hasPhoneNumber > 0) {
 					// Query and loop for every phone number of the contact
-					Cursor phoneCursor = contentResolver.query(PhoneCONTENT_URI, null, Phone_CONTACT_ID + " = ?", new String[] { contact_id }, null);
+					final Cursor phoneCursor = contentResolver.query(PhoneCONTENT_URI, null, Phone_CONTACT_ID + " = ?", new String[] { contact_id }, null);
 					while (phoneCursor.moveToNext()) {
 						String phoneNumber = phoneCursor.getString(phoneCursor.getColumnIndex(NUMBER)).replaceAll("\\s+","");
 						if (!phoneNumber.startsWith("+")) {
@@ -215,7 +216,7 @@ public class XMPPService extends GenericService {
 				}
 			}
 		}
-		ContactSync sync = (ContactSync)RoomsMessageFactory.getRoomsMessage(RoomsMessageType.ContactSync);
+		final ContactSync sync = (ContactSync)RoomsMessageFactory.getRoomsMessage(RoomsMessageType.ContactSync);
 		sync.setHashes(phones);
 		mSmackable.sendControlMessage(sync);
 	}
@@ -223,16 +224,19 @@ public class XMPPService extends GenericService {
 	private void createServiceChatStub() {
 		mServiceChatConnection = new IXMPPChatService.Stub() {
 
-			public void sendMessage(String user, String message)
+			@Override
+            public void sendMessage(final String user, final String message)
 					throws RemoteException {
-				if (mSmackable != null)
-					mSmackable.sendMessage(user, message);
-				else
-					SmackableImp.sendOfflineMessage(getContentResolver(),
+				if (mSmackable != null) {
+                    mSmackable.sendMessage(user, message);
+                } else {
+                    SmackableImp.sendOfflineMessage(getContentResolver(),
 							user, message, mConfig.jabberID);
+                }
 			}
 
-			public boolean isAuthenticated() throws RemoteException {
+			@Override
+            public boolean isAuthenticated() throws RemoteException {
 				if (mSmackable != null) {
 					return mSmackable.isAuthenticated();
 				}
@@ -240,15 +244,16 @@ public class XMPPService extends GenericService {
 				return false;
 			}
 			
-			public void clearNotifications(String Jid) throws RemoteException {
+			@Override
+            public void clearNotifications(final String Jid) throws RemoteException {
 				clearNotification(Jid);
 			}
 
 			@Override
-			public String sendFile(String jabberID, String fileName, long size, String key, String url, String mimeType)
+			public String sendFile(final String jabberID, final String fileName, final long size, final String key, final String url, final String mimeType)
 					throws RemoteException {
 				if (mSmackable != null) {
-					FileMessage message = (FileMessage)RoomsMessageFactory.getRoomsMessage(RoomsMessageType.File);
+					final FileMessage message = (FileMessage)RoomsMessageFactory.getRoomsMessage(RoomsMessageType.File);
 					try {
 						message.setFilename(fileName);
 						message.setSize(size);
@@ -258,7 +263,7 @@ public class XMPPService extends GenericService {
 						message.setMimeType(mimeType);
 						return mSmackable.sendRoomMessage(jabberID, message);
 					}
-					catch (Exception ex) {
+					catch (final Exception ex) {
 						Log.e("JSON", ex.getMessage());
 					}
 				}
@@ -266,7 +271,7 @@ public class XMPPService extends GenericService {
 			}
 			
 			@Override
-			public String openRoom(String parentRoomID, String topic, String[] participants)
+			public String openRoom(final String parentRoomID, final String topic, final String[] participants)
 					throws RemoteException {
 				if (mSmackable != null) {
 					return mSmackable.sendControlMessage(createOpenRoomRequest(parentRoomID, topic, participants));
@@ -275,10 +280,10 @@ public class XMPPService extends GenericService {
 			}
 
 			@Override
-			public String sendTaskResponse(String selectedOption)
+			public String sendTaskResponse(final String selectedOption)
 					throws RemoteException {
 				if (mSmackable != null) {
-					TaskResponse message = (TaskResponse)RoomsMessageFactory.getRoomsMessage(RoomsMessageType.TaskResponse);
+					final TaskResponse message = (TaskResponse)RoomsMessageFactory.getRoomsMessage(RoomsMessageType.TaskResponse);
 					message.setAnswer(selectedOption);
 					return mSmackable.sendControlMessage(message);
 				}
@@ -286,17 +291,17 @@ public class XMPPService extends GenericService {
 			}
 
 			@Override
-			public String sendTask(String roomID, String text, String recipient)
+			public String sendTask(final String roomID, final String text, final String recipient)
 					throws RemoteException {
 				if (mSmackable != null) {
-					TaskMessage message = (TaskMessage)RoomsMessageFactory.getRoomsMessage(RoomsMessageType.Task);
+					final TaskMessage message = (TaskMessage)RoomsMessageFactory.getRoomsMessage(RoomsMessageType.Task);
 					try {
 						message.setRecipients(Arrays.asList(recipient));
 						message.setText(text);
 						message.setOptions(Arrays.asList("Accept", "Reject", "Done"));
 						return mSmackable.sendRoomMessage(roomID, message);
 					}
-					catch (Exception ex) {
+					catch (final Exception ex) {
 						Log.e("JSON", ex.getMessage());
 					}
 				}
@@ -305,18 +310,18 @@ public class XMPPService extends GenericService {
 		};
 	}
 	
-	private OpenRoomRequest createOpenRoomRequest(String parentRoomID, String topic, String[] participants) {
+	private OpenRoomRequest createOpenRoomRequest(final String parentRoomID, final String topic, final String[] participants) {
 		String roomName = topic;
 		if (parentRoomID != null) {
-			Cursor c = getContentResolver().query(RosterProvider.ROOMS_URI, new String[] { RoomsConstants.NAME }, 
+			final Cursor c = getContentResolver().query(RosterProvider.ROOMS_URI, new String[] { RoomsConstants.NAME }, 
 					RoomsConstants.ID + " = ?", new String[] {parentRoomID}, null);
 			if (c.moveToNext()) {
 				roomName = c.getString(0) + "/" + roomName;
 			}
 		}
-		OpenRoomRequest request = new OpenRoomRequest();
+		final OpenRoomRequest request = new OpenRoomRequest();
 		request.setRoomName(roomName);
-		List<String> lstParticipants = new ArrayList<String>();
+		final List<String> lstParticipants = new ArrayList<String>();
 		lstParticipants.addAll(Arrays.asList(participants));
 		lstParticipants.add(mConfig.jabberID);
 		request.setParticipants(lstParticipants);
@@ -326,19 +331,24 @@ public class XMPPService extends GenericService {
 	private void createServiceRosterStub() {
 		mService2RosterConnection = new IXMPPRosterService.Stub() {
 
-			public void registerRosterCallback(IXMPPRosterCallback callback)
+			@Override
+            public void registerRosterCallback(final IXMPPRosterCallback callback)
 					throws RemoteException {
-				if (callback != null)
-					mRosterCallbacks.register(callback);
+				if (callback != null) {
+                    mRosterCallbacks.register(callback);
+                }
 			}
 
-			public void unregisterRosterCallback(IXMPPRosterCallback callback)
+			@Override
+            public void unregisterRosterCallback(final IXMPPRosterCallback callback)
 					throws RemoteException {
-				if (callback != null)
-					mRosterCallbacks.unregister(callback);
+				if (callback != null) {
+                    mRosterCallbacks.unregister(callback);
+                }
 			}
 
-			public int getConnectionState() throws RemoteException {
+			@Override
+            public int getConnectionState() throws RemoteException {
 				if (mSmackable != null) {
 					return mSmackable.getConnectionState().ordinal();
 				} else {
@@ -346,12 +356,14 @@ public class XMPPService extends GenericService {
 				}
 			}
 
-			public String getConnectionStateString() throws RemoteException {
+			@Override
+            public String getConnectionStateString() throws RemoteException {
 				return XMPPService.this.getConnectionStateString();
 			}
 
 
-			public void setStatusFromConfig()
+			@Override
+            public void setStatusFromConfig()
 					throws RemoteException {
 				if (mSmackable != null) { // this should always be true, but stil...
 					mSmackable.setStatusFromConfig();
@@ -359,83 +371,92 @@ public class XMPPService extends GenericService {
 				}
 			}
 
-			public void addRosterItem(String user, String alias, String group)
+			@Override
+            public void addRosterItem(final String user, final String alias, final String group)
 					throws RemoteException {
 				try {
 					mSmackable.addRosterItem(user, alias, group);
-				} catch (YaximXMPPException e) {
+				} catch (final YaximXMPPException e) {
 					shortToastNotify(e);
 				}
 			}
 
-			public void addRosterGroup(String group) throws RemoteException {
+			@Override
+            public void addRosterGroup(final String group) throws RemoteException {
 				mSmackable.addRosterGroup(group);
 			}
 
-			public void removeRosterItem(String user) throws RemoteException {
+			@Override
+            public void removeRosterItem(final String user) throws RemoteException {
 				try {
 					mSmackable.removeRosterItem(user);
-				} catch (YaximXMPPException e) {
+				} catch (final YaximXMPPException e) {
 					shortToastNotify(e);
 				}
 			}
 
-			public void moveRosterItemToGroup(String user, String group)
+			@Override
+            public void moveRosterItemToGroup(final String user, final String group)
 					throws RemoteException {
 				try {
 					mSmackable.moveRosterItemToGroup(user, group);
-				} catch (YaximXMPPException e) {
+				} catch (final YaximXMPPException e) {
 					shortToastNotify(e);
 				}
 			}
 
-			public void renameRosterItem(String user, String newName)
+			@Override
+            public void renameRosterItem(final String user, final String newName)
 					throws RemoteException {
 				try {
 					mSmackable.renameRosterItem(user, newName);
-				} catch (YaximXMPPException e) {
+				} catch (final YaximXMPPException e) {
 					shortToastNotify(e);
 				}
 			}
 
-			public void renameRosterGroup(String group, String newGroup)
+			@Override
+            public void renameRosterGroup(final String group, final String newGroup)
 					throws RemoteException {
 				mSmackable.renameRosterGroup(group, newGroup);
 			}
 
-			public void disconnect() throws RemoteException {
+			@Override
+            public void disconnect() throws RemoteException {
 				manualDisconnect();
 			}
 
-			public void connect() throws RemoteException {
+			@Override
+            public void connect() throws RemoteException {
 				mConnectionDemanded.set(true);
 				mReconnectTimeout = RECONNECT_AFTER;
 				doConnect();
 			}
 
-			public void sendPresenceRequest(String jid, String type)
+			@Override
+            public void sendPresenceRequest(final String jid, final String type)
 					throws RemoteException {
 				mSmackable.sendPresenceRequest(jid, type);
 			}
 
 			@Override
-			public void openRoom(String parentRoomID, String topic,
-					String[] participants) throws RemoteException {
+			public void openRoom(final String parentRoomID, final String topic,
+					final String[] participants) throws RemoteException {
 				mSmackable.sendControlMessage(createOpenRoomRequest(parentRoomID, topic, participants));
 			}
 
 			@Override
-			public void sendRegistrationMessage1(String phoneNumber)
+			public void sendRegistrationMessage1(final String phoneNumber)
 					throws RemoteException {
-				RegistrationRequest request = new RegistrationRequest();
+				final RegistrationRequest request = new RegistrationRequest();
 				request.setPhoneNumber(phoneNumber);
 				mSmackable.sendControlMessage(request);
 			}
 
 			@Override
-			public void sendRegistrationMessage2(String code, String publicKey)
+			public void sendRegistrationMessage2(final String code, final String publicKey)
 					throws RemoteException {
-				Registration registration = new Registration();
+				final Registration registration = new Registration();
 				registration.setConfirmationCode(code);
 				registration.setPublicKey(publicKey);
 				mSmackable.sendControlMessage(registration);
@@ -447,30 +468,40 @@ public class XMPPService extends GenericService {
 			}
 
 			@Override
-			public void searchContact(String name) throws RemoteException {
-				ContactSearch search = (ContactSearch)RoomsMessageFactory.getRoomsMessage(RoomsMessageType.ContactSearch);
+			public void searchContact(final String name) throws RemoteException {
+				final ContactSearch search = (ContactSearch)RoomsMessageFactory.getRoomsMessage(RoomsMessageType.ContactSearch);
 				search.setQuery(name);
 				mSmackable.sendControlMessage(search);
 			}
 
 			@Override
-			public void sendWebToken(String token) throws RemoteException {
+			public void sendWebToken(final String token) throws RemoteException {
 				final Crypto crypto = YaximApplication.getApp(getApplicationContext()).mCrypto;
-				WebLoginToken tokenMessage = (WebLoginToken)RoomsMessageFactory.getRoomsMessage(RoomsMessageType.WebLoginToken);
+				final WebLoginToken tokenMessage = (WebLoginToken)RoomsMessageFactory.getRoomsMessage(RoomsMessageType.WebLoginToken);
 				try {
 					tokenMessage.setTokenHash(crypto.hash(token));
 					tokenMessage.setPassword(crypto.encryptSymmetrically(mConfig.password, token));
 					mSmackable.sendControlMessage(tokenMessage);
 				}
-				catch (EncryptionException ex) {
+				catch (final EncryptionException ex) {
 					logError("Encryption error: " + ex.getMessage());
 				}
 			}
+
+            @Override
+            public void setCompanies( final String[] companyKeys ) throws RemoteException {
+
+                final CompanyAffiliationResponse response =
+                        (CompanyAffiliationResponse) RoomsMessageFactory
+                                .getRoomsMessage( RoomsMessageType.CompanyAffiliationResponse );
+                response.setCompanyKeys( Arrays.asList( companyKeys ) );
+                mSmackable.sendControlMessage( response );
+            }
 		};
 	}
 
 	private String getConnectionStateString() {
-		StringBuilder sb = new StringBuilder();
+		final StringBuilder sb = new StringBuilder();
 		sb.append(mReconnectInfo);
 		if (mSmackable != null && mSmackable.getLastError() != null) {
 			sb.append("\n");
@@ -479,9 +510,10 @@ public class XMPPService extends GenericService {
 		return sb.toString();
 	}
 
-	public String getStatusTitle(ConnectionState cs) {
-		if (cs != ConnectionState.ONLINE)
-			return mReconnectInfo;
+	public String getStatusTitle(final ConnectionState cs) {
+		if (cs != ConnectionState.ONLINE) {
+            return mReconnectInfo;
+        }
 		String status = getString(StatusMode.fromString(mConfig.statusMode).getTextId());
 
 		if (mConfig.statusMessage.length() > 0) {
@@ -505,28 +537,30 @@ public class XMPPService extends GenericService {
 		broadcastConnectionState(cs);
 
 		// do not show notification if not a foreground service
-		if (!mConfig.foregroundService)
-			return;
+		if (!mConfig.foregroundService) {
+            return;
+        }
 
 		if (cs == ConnectionState.OFFLINE) {
 			mServiceNotification.hideNotification(this, SERVICE_NOTIFICATION);
 			return;
 		}
-		Notification n = new Notification(R.drawable.ic_offline, null,
+		final Notification n = new Notification(R.drawable.ic_offline, null,
 				System.currentTimeMillis());
 		n.flags = Notification.FLAG_ONGOING_EVENT | Notification.FLAG_NO_CLEAR | Notification.FLAG_ONLY_ALERT_ONCE;
 
-		Intent notificationIntent = new Intent(this, MainWindow.class);
+		final Intent notificationIntent = new Intent(this, MainWindow.class);
 		notificationIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
 		n.contentIntent = PendingIntent.getActivity(this, 0, notificationIntent,
 				PendingIntent.FLAG_UPDATE_CURRENT);
 
-		if (cs == ConnectionState.ONLINE)
-			n.icon = R.drawable.ic_online;
+		if (cs == ConnectionState.ONLINE) {
+            n.icon = R.drawable.ic_online;
+        }
 
-		SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);		
-		String title = getString(R.string.conn_title, sharedPreferences.getString(PreferenceConstants.NAME, ""));
-		String message = getStatusTitle(cs);
+		final SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);		
+		final String title = getString(R.string.conn_title, sharedPreferences.getString(PreferenceConstants.NAME, ""));
+		final String message = getStatusTitle(cs);
 		n.setLatestEventInfo(this, title, message, n.contentIntent);
 
 		mServiceNotification.showNotification(this, SERVICE_NOTIFICATION,
@@ -543,13 +577,13 @@ public class XMPPService extends GenericService {
 		mSmackable.requestConnectionState(ConnectionState.ONLINE, create_account);
 	}
 
-	private void broadcastConnectionState(ConnectionState cs) {
+	private void broadcastConnectionState(final ConnectionState cs) {
 		final int broadCastItems = mRosterCallbacks.beginBroadcast();
 
 		for (int i = 0; i < broadCastItems; i++) {
 			try {
 				mRosterCallbacks.getBroadcastItem(i).connectionStateChanged(cs.ordinal());
-			} catch (RemoteException e) {
+			} catch (final RemoteException e) {
 				logError("caught RemoteException: " + e.getMessage());
 			}
 		}
@@ -557,33 +591,34 @@ public class XMPPService extends GenericService {
 	}
 
 	private NetworkInfo getNetworkInfo() {
-		Context ctx = getApplicationContext();
-		ConnectivityManager connMgr =
+		final Context ctx = getApplicationContext();
+		final ConnectivityManager connMgr =
 				(ConnectivityManager) ctx.getSystemService(Context.CONNECTIVITY_SERVICE);
 		return connMgr.getActiveNetworkInfo();
 	}
 	private boolean networkConnected() {
-		NetworkInfo info = getNetworkInfo();
+		final NetworkInfo info = getNetworkInfo();
 
 		return info != null && info.isConnected();
 	}
 	private boolean networkConnectedOrConnecting() {
-		NetworkInfo info = getNetworkInfo();
+		final NetworkInfo info = getNetworkInfo();
 
 		return info != null && info.isConnectedOrConnecting();
 	}
 
 	// call this when Android tells us to shut down
-	private void failConnection(String reason) {
+	private void failConnection(final String reason) {
 		logInfo("failConnection: " + reason);
 		mReconnectInfo = reason;
 		updateServiceNotification();
-		if (mSmackable != null)
-			mSmackable.requestConnectionState(ConnectionState.DISCONNECTED);
+		if (mSmackable != null) {
+            mSmackable.requestConnectionState(ConnectionState.DISCONNECTED);
+        }
 	}
 
 	// called from Smackable when connection broke down
-	private void connectionFailed(String reason) {
+	private void connectionFailed(final String reason) {
 		logInfo("connectionFailed: " + reason);
 		//TODO: error message from downstream?
 		//mLastConnectionError = reason;
@@ -598,8 +633,9 @@ public class XMPPService extends GenericService {
 			((AlarmManager)getSystemService(Context.ALARM_SERVICE)).set(AlarmManager.RTC_WAKEUP,
 					System.currentTimeMillis() + mReconnectTimeout * 1000, mPAlarmIntent);
 			mReconnectTimeout = mReconnectTimeout * 2;
-			if (mReconnectTimeout > RECONNECT_MAXIMUM)
-				mReconnectTimeout = RECONNECT_MAXIMUM;
+			if (mReconnectTimeout > RECONNECT_MAXIMUM) {
+                mReconnectTimeout = RECONNECT_MAXIMUM;
+            }
 		} else {
 			connectionClosed();
 		}
@@ -629,30 +665,35 @@ public class XMPPService extends GenericService {
 		System.setProperty("smack.debugEnabled", "" + mConfig.smackdebug);
 		try {
 			mSmackable = new SmackableImp(mConfig, getContentResolver(), this);
-		} catch (NullPointerException e) {
+		} catch (final NullPointerException e) {
 			e.printStackTrace();
 		}
 
 		mSmackable.registerCallback(new XMPPServiceCallback() {
-			public void newMessage(String from, String roomID, String message, boolean silent_notification) {
+			@Override
+            public void newMessage(final String from, final String roomID, final String message, final boolean silent_notification) {
 				logInfo("notification: " + from);
 				notifyClient(from, mSmackable.getNameForJID(from, roomID), roomID, message, !mIsBoundTo.contains(from) && !mIsBoundTo.contains(roomID), silent_notification, false);
 			}
 
-			public void messageError(final String from, final String error, final boolean silent_notification) {
+			@Override
+            public void messageError(final String from, final String error, final boolean silent_notification) {
 				logInfo("error notification: " + from);
 				mMainHandler.post(new Runnable() {
-					public void run() {
+					@Override
+                    public void run() {
 						// work around Toast fallback for errors
 						notifyClient(from, mSmackable.getNameForJID(from, null), null, error,
 							!mIsBoundTo.contains(from), silent_notification, true);
 					}});
 				}
 
-			public void rosterChanged() {
+			@Override
+            public void rosterChanged() {
 			}
 
-			public void connectionStateChanged() {
+			@Override
+            public void connectionStateChanged() {
 				// TODO: OFFLINE is sometimes caused by XMPPConnection calling
 				// connectionClosed() callback on an error, need to catch that?
 				switch (mSmackable.getConnectionState()) {
@@ -660,8 +701,8 @@ public class XMPPService extends GenericService {
 				case DISCONNECTED:
 					connectionFailed(getString(R.string.conn_disconnected));
 					break;
-				case ONLINE:
-					mReconnectTimeout = RECONNECT_AFTER;
+                case ONLINE:
+                    mReconnectTimeout = RECONNECT_AFTER;//$FALL-THROUGH$
 				default:
 					updateServiceNotification();
 				}
@@ -670,7 +711,8 @@ public class XMPPService extends GenericService {
 	}
 
 	private class ReconnectAlarmReceiver extends BroadcastReceiver {
-		public void onReceive(Context ctx, Intent i) {
+		@Override
+        public void onReceive(final Context ctx, final Intent i) {
 			logInfo("Alarm received.");
 			if (!mConnectionDemanded.get()) {
 				return;

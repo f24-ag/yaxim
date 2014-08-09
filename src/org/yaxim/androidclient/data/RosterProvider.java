@@ -28,6 +28,7 @@ public class RosterProvider extends ContentProvider {
 	public static final String TABLE_ROOMS = "rooms";
 	public static final String TABLE_PARTICIPANTS = "participants";
 	public static final String TABLE_KEYS = "keys";
+    public static final String TABLE_COMPANIES = "companies";
 	public static final Uri CONTENT_URI = Uri.parse("content://" + AUTHORITY
 			+ "/" + TABLE_ROSTER);
 	public static final Uri GROUPS_URI = Uri.parse("content://" + AUTHORITY
@@ -38,6 +39,8 @@ public class RosterProvider extends ContentProvider {
 			+ "/" + TABLE_PARTICIPANTS);
 	public static final Uri KEYS_URI = Uri.parse("content://" + AUTHORITY
 			+ "/" + TABLE_KEYS);
+    public static final Uri COMPANIES_URI = Uri.parse( "content://" + AUTHORITY
+            + "/" + TABLE_COMPANIES );
 	public static final String QUERY_ALIAS = "main_result";
 
 	private static final UriMatcher URI_MATCHER = new UriMatcher(
@@ -68,15 +71,16 @@ public class RosterProvider extends ContentProvider {
 
 	private static final String TAG = "yaxim.RosterProvider";
 
-	private Runnable mNotifyChange = new Runnable() {
-		public void run() {
+	private final Runnable mNotifyChange = new Runnable() {
+		@Override
+        public void run() {
 			Log.d(TAG, "notifying change");
 			getContext().getContentResolver().notifyChange(CONTENT_URI, null);
 			getContext().getContentResolver().notifyChange(GROUPS_URI, null);
 			getContext().getContentResolver().notifyChange(ROOMS_URI, null);
 		}
 	};
-	private Handler mNotifyHandler = new Handler();
+	private final Handler mNotifyHandler = new Handler();
 
 	private SQLiteOpenHelper mOpenHelper;
 
@@ -85,8 +89,8 @@ public class RosterProvider extends ContentProvider {
 	}
 
 	@Override
-	public int delete(Uri url, String where, String[] whereArgs) {
-		SQLiteDatabase db = mOpenHelper.getWritableDatabase();
+	public int delete(final Uri url, String where, final String[] whereArgs) {
+		final SQLiteDatabase db = mOpenHelper.getWritableDatabase();
 		int count;
 		String segment;
 		switch (URI_MATCHER.match(url)) {
@@ -149,8 +153,8 @@ public class RosterProvider extends ContentProvider {
 	}
 
 	@Override
-	public String getType(Uri url) {
-		int match = URI_MATCHER.match(url);
+	public String getType(final Uri url) {
+		final int match = URI_MATCHER.match(url);
 		switch (match) {
 		case CONTACTS:
 			return RosterConstants.CONTENT_TYPE;
@@ -174,59 +178,59 @@ public class RosterProvider extends ContentProvider {
 	}
 
 	@Override
-	public Uri insert(Uri url, ContentValues initialValues) {
-		SQLiteDatabase db = mOpenHelper.getWritableDatabase();
-		ContentValues values = (initialValues != null) ? new ContentValues(
+	public Uri insert(final Uri url, final ContentValues initialValues) {
+		final SQLiteDatabase db = mOpenHelper.getWritableDatabase();
+		final ContentValues values = (initialValues != null) ? new ContentValues(
 				initialValues) : new ContentValues();
 
 		if (URI_MATCHER.match(url) == CONTACTS) {
-			for (String colName : RosterConstants.getRequiredColumns()) {
+			for (final String colName : RosterConstants.getRequiredColumns()) {
 				if (values.containsKey(colName) == false) {
 					throw new IllegalArgumentException("Missing column: " + colName);
 				}
 			}
-			long rowId = db.insert(TABLE_ROSTER, RosterConstants.JID, values);
+			final long rowId = db.insert(TABLE_ROSTER, RosterConstants.JID, values);
 			if (rowId < 0) {
 				throw new SQLException("Failed to insert row into " + url);
 			}
-			Uri noteUri = ContentUris.withAppendedId(CONTENT_URI, rowId);
+			final Uri noteUri = ContentUris.withAppendedId(CONTENT_URI, rowId);
 			notifyChange();
 			return noteUri;
 		}
 		else if (URI_MATCHER.match(url) == ROOMS) {
-			for (String colName : RoomsConstants.getRequiredColumns()) {
+			for (final String colName : RoomsConstants.getRequiredColumns()) {
 				if (values.containsKey(colName) == false) {
 					throw new IllegalArgumentException("Missing column: " + colName);
 				}
 			}
-			long rowId = db.insert(TABLE_ROOMS, RoomsConstants.ID, values);
+			final long rowId = db.insert(TABLE_ROOMS, RoomsConstants.ID, values);
 			if (rowId < 0) {
 				throw new SQLException("Failed to insert row into " + url);
 			}
-			Uri noteUri = ContentUris.withAppendedId(CONTENT_URI, rowId);
+			final Uri noteUri = ContentUris.withAppendedId(CONTENT_URI, rowId);
 			notifyChange();
 			return noteUri;
 		} 
 		else if (URI_MATCHER.match(url) == PARTICIPANTS) {
-			for (String colName : ParticipantConstants.getRequiredColumns()) {
+			for (final String colName : ParticipantConstants.getRequiredColumns()) {
 				if (values.containsKey(colName) == false) {
 					throw new IllegalArgumentException("Missing column: " + colName);
 				}
 			}
-			long rowId = db.insert(TABLE_PARTICIPANTS, ParticipantConstants.JID, values);
+			final long rowId = db.insert(TABLE_PARTICIPANTS, ParticipantConstants.JID, values);
 			if (rowId < 0) {
 				throw new SQLException("Failed to insert row into " + url);
 			}
-			Uri noteUri = ContentUris.withAppendedId(CONTENT_URI, rowId);
+			final Uri noteUri = ContentUris.withAppendedId(CONTENT_URI, rowId);
 			notifyChange();
 			return noteUri;
 		} 
 		else if (URI_MATCHER.match(url) == KEYS) {
-			long rowId = db.insert(TABLE_KEYS, KeysConstants.JID, values);
+			final long rowId = db.insert(TABLE_KEYS, KeysConstants.JID, values);
 			if (rowId < 0) {
 				throw new SQLException("Failed to insert row into " + url);
 			}
-			Uri noteUri = ContentUris.withAppendedId(CONTENT_URI, rowId);
+			final Uri noteUri = ContentUris.withAppendedId(CONTENT_URI, rowId);
 			notifyChange();
 			return noteUri;
 		} 
@@ -242,11 +246,11 @@ public class RosterProvider extends ContentProvider {
 	}
 
 	@Override
-	public Cursor query(Uri url, String[] projectionIn, String selection,
-			String[] selectionArgs, String sortOrder) {
+	public Cursor query(final Uri url, final String[] projectionIn, final String selection,
+			final String[] selectionArgs, final String sortOrder) {
 
-		SQLiteQueryBuilder qBuilder = new SQLiteQueryBuilder();
-		int match = URI_MATCHER.match(url);
+		final SQLiteQueryBuilder qBuilder = new SQLiteQueryBuilder();
+		final int match = URI_MATCHER.match(url);
 		String groupBy = null;
 
 		switch (match) {
@@ -313,8 +317,8 @@ public class RosterProvider extends ContentProvider {
 			orderBy = sortOrder;
 		}
 
-		SQLiteDatabase db = mOpenHelper.getReadableDatabase();
-		Cursor ret = qBuilder.query(db, projectionIn, selection, selectionArgs,
+		final SQLiteDatabase db = mOpenHelper.getReadableDatabase();
+		final Cursor ret = qBuilder.query(db, projectionIn, selection, selectionArgs,
 				groupBy, null, orderBy);
 
 		if (ret == null) {
@@ -327,12 +331,12 @@ public class RosterProvider extends ContentProvider {
 	}
 
 	@Override
-	public int update(Uri url, ContentValues values, String where,
-			String[] whereArgs) {
+	public int update(final Uri url, final ContentValues values, final String where,
+			final String[] whereArgs) {
 		int count;
 		long rowId = 0;
-		int match = URI_MATCHER.match(url);
-		SQLiteDatabase db = mOpenHelper.getWritableDatabase();
+		final int match = URI_MATCHER.match(url);
+		final SQLiteDatabase db = mOpenHelper.getWritableDatabase();
 		String segment;
 
 		switch (match) {
@@ -384,15 +388,16 @@ public class RosterProvider extends ContentProvider {
 	long last_notify = 0;
 	private void notifyChange() {
 		mNotifyHandler.removeCallbacks(mNotifyChange);
-		long ts = System.currentTimeMillis();
-		if (ts > last_notify + 500)
-			mNotifyChange.run();
-		else
-			mNotifyHandler.postDelayed(mNotifyChange, 200);
+		final long ts = System.currentTimeMillis();
+		if (ts > last_notify + 500) {
+            mNotifyChange.run();
+        } else {
+            mNotifyHandler.postDelayed(mNotifyChange, 200);
+        }
 		last_notify = ts;
 	}
 
-	private static void infoLog(String data) {
+	private static void infoLog(final String data) {
 		if (LogConstants.LOG_INFO) {
 			Log.i(TAG, data);
 		}
@@ -403,12 +408,12 @@ public class RosterProvider extends ContentProvider {
 		private static final String DATABASE_NAME = "roster.db";
 		private static final int DATABASE_VERSION = 2;
 
-		public RosterDatabaseHelper(Context context) {
+		public RosterDatabaseHelper(final Context context) {
 			super(context, DATABASE_NAME, null, DATABASE_VERSION);
 		}
 
 		@Override
-		public void onCreate(SQLiteDatabase db) {
+		public void onCreate(final SQLiteDatabase db) {
 			infoLog("creating new roster table");
 
 			db.execSQL("CREATE TABLE " + TABLE_ROSTER + " ("
@@ -430,7 +435,7 @@ public class RosterProvider extends ContentProvider {
 			createKeysTable(db);
 		}
 		
-		private void createRoomsTable(SQLiteDatabase db) {
+		private void createRoomsTable(final SQLiteDatabase db) {
 			db.execSQL("CREATE TABLE " + TABLE_ROOMS + " ("
 					+ RosterConstants._ID
 					+ " INTEGER PRIMARY KEY AUTOINCREMENT, "
@@ -445,7 +450,7 @@ public class RosterProvider extends ContentProvider {
 				        + " (" + RoomsConstants.ID + ")");
 		}
 
-		private void createParticipantsTable(SQLiteDatabase db) {
+		private void createParticipantsTable(final SQLiteDatabase db) {
 			db.execSQL("CREATE TABLE " + TABLE_PARTICIPANTS + " ("
 					+ ParticipantConstants._ID
 					+ " INTEGER PRIMARY KEY AUTOINCREMENT, "
@@ -456,7 +461,7 @@ public class RosterProvider extends ContentProvider {
 				        + " (" + ParticipantConstants.ROOM + ")");
 		}
 
-		private void createKeysTable(SQLiteDatabase db) {
+		private void createKeysTable(final SQLiteDatabase db) {
 			db.execSQL("CREATE TABLE " + TABLE_KEYS + " ("
 					+ KeysConstants._ID
 					+ " INTEGER PRIMARY KEY AUTOINCREMENT, "
@@ -469,7 +474,7 @@ public class RosterProvider extends ContentProvider {
 		}
 
 		@Override
-		public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
+		public void onUpgrade(final SQLiteDatabase db, final int oldVersion, final int newVersion) {
 			infoLog("onUpgrade: from " + oldVersion + " to " + newVersion);
 			switch (oldVersion) {
 			case 1:
@@ -503,7 +508,7 @@ public class RosterProvider extends ContentProvider {
 		public static final String DEFAULT_SORT_ORDER = STATUS_MODE + " DESC, " + ALIAS + " COLLATE NOCASE";
 
 		public static ArrayList<String> getRequiredColumns() {
-			ArrayList<String> tmpList = new ArrayList<String>();
+			final ArrayList<String> tmpList = new ArrayList<String>();
 			tmpList.add(JID);
 			tmpList.add(ALIAS);
 			tmpList.add(STATUS_MODE);
@@ -533,7 +538,7 @@ public class RosterProvider extends ContentProvider {
 		public static final String DEFAULT_SORT_ORDER = CREATED + " DESC, " + NAME + " COLLATE NOCASE";
 
 		public static ArrayList<String> getRequiredColumns() {
-			ArrayList<String> tmpList = new ArrayList<String>();
+			final ArrayList<String> tmpList = new ArrayList<String>();
 			tmpList.add(ID);
 			tmpList.add(NAME);
 			tmpList.add(CREATED);
@@ -559,7 +564,7 @@ public class RosterProvider extends ContentProvider {
 		public static final String NAME = "name";
 
 		public static ArrayList<String> getRequiredColumns() {
-			ArrayList<String> tmpList = new ArrayList<String>();
+			final ArrayList<String> tmpList = new ArrayList<String>();
 			tmpList.add(JID);
 			tmpList.add(ROOM);
 			tmpList.add(NAME);
@@ -581,7 +586,7 @@ public class RosterProvider extends ContentProvider {
 		public static final String RESOURCE = "resource";
 
 		public static ArrayList<String> getRequiredColumns() {
-			ArrayList<String> tmpList = new ArrayList<String>();
+			final ArrayList<String> tmpList = new ArrayList<String>();
 			tmpList.add(JID);
 			tmpList.add(PUBLIC_KEY);
 			tmpList.add(PRIVATE_KEY);

@@ -4,7 +4,6 @@ import java.util.ArrayList;
 
 import org.yaxim.androidclient.util.LogConstants;
 
-import de.f24.rooms.messages.RoomsMessageType;
 import android.content.ContentProvider;
 import android.content.ContentUris;
 import android.content.ContentValues;
@@ -19,6 +18,7 @@ import android.net.Uri;
 import android.provider.BaseColumns;
 import android.text.TextUtils;
 import android.util.Log;
+import de.f24.rooms.messages.RoomsMessageType;
 
 public class ChatProvider extends ContentProvider {
 
@@ -46,8 +46,8 @@ public class ChatProvider extends ContentProvider {
 	}
 
 	@Override
-	public int delete(Uri url, String where, String[] whereArgs) {
-		SQLiteDatabase db = mOpenHelper.getWritableDatabase();
+	public int delete(final Uri url, String where, final String[] whereArgs) {
+		final SQLiteDatabase db = mOpenHelper.getWritableDatabase();
 		int count;
 		switch (URI_MATCHER.match(url)) {
 
@@ -55,7 +55,7 @@ public class ChatProvider extends ContentProvider {
 			count = db.delete(TABLE_NAME, where, whereArgs);
 			break;
 		case MESSAGE_ID:
-			String segment = url.getPathSegments().get(1);
+			final String segment = url.getPathSegments().get(1);
 
 			if (TextUtils.isEmpty(where)) {
 				where = "_id=" + segment;
@@ -74,8 +74,8 @@ public class ChatProvider extends ContentProvider {
 	}
 
 	@Override
-	public String getType(Uri url) {
-		int match = URI_MATCHER.match(url);
+	public String getType(final Uri url) {
+		final int match = URI_MATCHER.match(url);
 		switch (match) {
 		case MESSAGES:
 			return ChatConstants.CONTENT_TYPE;
@@ -87,29 +87,29 @@ public class ChatProvider extends ContentProvider {
 	}
 
 	@Override
-	public Uri insert(Uri url, ContentValues initialValues) {
+	public Uri insert(final Uri url, final ContentValues initialValues) {
 		if (URI_MATCHER.match(url) != MESSAGES) {
 			throw new IllegalArgumentException("Cannot insert into URL: " + url);
 		}
 
-		ContentValues values = (initialValues != null) ? new ContentValues(
+		final ContentValues values = (initialValues != null) ? new ContentValues(
 				initialValues) : new ContentValues();
 
-		for (String colName : ChatConstants.getRequiredColumns()) {
+		for (final String colName : ChatConstants.getRequiredColumns()) {
 			if (values.containsKey(colName) == false) {
 				throw new IllegalArgumentException("Missing column: " + colName);
 			}
 		}
 
-		SQLiteDatabase db = mOpenHelper.getWritableDatabase();
+		final SQLiteDatabase db = mOpenHelper.getWritableDatabase();
 
-		long rowId = db.insert(TABLE_NAME, ChatConstants.DATE, values);
+		final long rowId = db.insert(TABLE_NAME, ChatConstants.DATE, values);
 
 		if (rowId < 0) {
 			throw new SQLException("Failed to insert row into " + url);
 		}
 
-		Uri noteUri = ContentUris.withAppendedId(CONTENT_URI, rowId);
+		final Uri noteUri = ContentUris.withAppendedId(CONTENT_URI, rowId);
 		getContext().getContentResolver().notifyChange(noteUri, null);
 		return noteUri;
 	}
@@ -121,11 +121,11 @@ public class ChatProvider extends ContentProvider {
 	}
 
 	@Override
-	public Cursor query(Uri url, String[] projectionIn, String selection,
-			String[] selectionArgs, String sortOrder) {
+	public Cursor query(final Uri url, final String[] projectionIn, final String selection,
+			final String[] selectionArgs, final String sortOrder) {
 
-		SQLiteQueryBuilder qBuilder = new SQLiteQueryBuilder();
-		int match = URI_MATCHER.match(url);
+		final SQLiteQueryBuilder qBuilder = new SQLiteQueryBuilder();
+		final int match = URI_MATCHER.match(url);
 
 		switch (match) {
 		case MESSAGES:
@@ -147,8 +147,8 @@ public class ChatProvider extends ContentProvider {
 			orderBy = sortOrder;
 		}
 
-		SQLiteDatabase db = mOpenHelper.getReadableDatabase();
-		Cursor ret = qBuilder.query(db, projectionIn, selection, selectionArgs,
+		final SQLiteDatabase db = mOpenHelper.getReadableDatabase();
+		final Cursor ret = qBuilder.query(db, projectionIn, selection, selectionArgs,
 				null, null, orderBy);
 
 		if (ret == null) {
@@ -161,19 +161,19 @@ public class ChatProvider extends ContentProvider {
 	}
 
 	@Override
-	public int update(Uri url, ContentValues values, String where,
-			String[] whereArgs) {
+	public int update(final Uri url, final ContentValues values, final String where,
+			final String[] whereArgs) {
 		int count;
 		long rowId = 0;
-		int match = URI_MATCHER.match(url);
-		SQLiteDatabase db = mOpenHelper.getWritableDatabase();
+		final int match = URI_MATCHER.match(url);
+		final SQLiteDatabase db = mOpenHelper.getWritableDatabase();
 
 		switch (match) {
 		case MESSAGES:
 			count = db.update(TABLE_NAME, values, where, whereArgs);
 			break;
 		case MESSAGE_ID:
-			String segment = url.getPathSegments().get(1);
+			final String segment = url.getPathSegments().get(1);
 			rowId = Long.parseLong(segment);
 			count = db.update(TABLE_NAME, values, "_id=" + rowId, null);
 			break;
@@ -188,7 +188,7 @@ public class ChatProvider extends ContentProvider {
 
 	}
 
-	private static void infoLog(String data) {
+	private static void infoLog(final String data) {
 		if (LogConstants.LOG_INFO) {
 			Log.i(TAG, data);
 		}
@@ -199,12 +199,12 @@ public class ChatProvider extends ContentProvider {
 		private static final String DATABASE_NAME = "yaxim.db";
 		private static final int DATABASE_VERSION = 7;
 
-		public ChatDatabaseHelper(Context context) {
+		public ChatDatabaseHelper(final Context context) {
 			super(context, DATABASE_NAME, null, DATABASE_VERSION);
 		}
 
 		@Override
-		public void onCreate(SQLiteDatabase db) {
+		public void onCreate(final SQLiteDatabase db) {
 			if (LogConstants.LOG_DEBUG) {
 				infoLog("creating new chat table");
 			}
@@ -223,11 +223,12 @@ public class ChatProvider extends ContentProvider {
 		}
 
 		@Override
-		public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
+		public void onUpgrade(final SQLiteDatabase db, final int oldVersion, final int newVersion) {
 			infoLog("onUpgrade: from " + oldVersion + " to " + newVersion);
 			switch (oldVersion) {
 			case 3:
 				db.execSQL("UPDATE " + TABLE_NAME + " SET READ=1");
+                break;
 			case 4:
 				db.execSQL("ALTER TABLE " + TABLE_NAME + " ADD " + ChatConstants.PACKET_ID + " TEXT");
 				break;
@@ -276,7 +277,7 @@ public class ChatProvider extends ContentProvider {
 		public static final int DS_FAILED = 3; //< this message was returned as failed
 
 		public static ArrayList<String> getRequiredColumns() {
-			ArrayList<String> tmpList = new ArrayList<String>();
+			final ArrayList<String> tmpList = new ArrayList<String>();
 			tmpList.add(DATE);
 			tmpList.add(DIRECTION);
 			tmpList.add(JID);
