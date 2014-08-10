@@ -1001,6 +1001,7 @@ public class MainWindow extends SherlockFragmentActivity {
                     final JSONObject company = jsonObject.getJSONArray( "companies" ).getJSONObject( i );
                     names.add( company.getString( "name" ) );
                     keys.add(company.getString( "key" ));
+                    selectedKeys.add( company.getString( "key" ) );
                     selectedIndexes[i] = true;
                 }
                 new AlertDialog.Builder( MainWindow.this )
