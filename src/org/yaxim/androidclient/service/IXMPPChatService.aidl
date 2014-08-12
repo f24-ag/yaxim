@@ -8,4 +8,6 @@ interface IXMPPChatService {
 	String openRoom(String parentRoomID, String topic, in String[] participants);
 	String sendTaskResponse(String selectedOption);
 	String sendTask(String roomID, String text, String recipient);
+	void inviteParticipant(String roomID, String jid);
+	void kickParticipant(String roomID, String jid);
 }

@@ -108,7 +108,9 @@
 	<string name="Menu_task">Neue Aufgabe erstellen</string>
 	<string name="Menu_addRoom">Neuen Raum aufmachen</string>
 	<string name="Menu_sync">Kontaktliste abgleichen</string>
-					
+	<string name="Menu_invite">Teilnehmer einladen</string>
+	<string name="Menu_kick">Teilnehmer rausschmeißen</string>
+							
 	<!-- AddFriend -->
 	<string name="addFriend_Title">Neuer Kontakt</string>
 	<string name="addFriend_Summ">Bitte geben Sie die Jabber-ID und den Anzeigenamen für Ihren Kontakt ein und ordnen Sie diesen in eine Kontakgruppe!</string>
@@ -259,4 +261,6 @@
 	<string name="rooms.taskTitle">Aufgabe:</string>
 	<string name="rooms.companies">Bitte Ihre Firmenzugehörigkeit bestätigen:</string>
 	<string name="rooms.sync_confirm">Ihre Kontaktliste mit Rooms abgleichen?</string>
+	<string name="rooms.inviteParticipant">Neuen Teilnehmer einladen</string>
+	<string name="rooms.kickParticipant">Einen Teilnehmer rausschmeißen</string>
 </resources>

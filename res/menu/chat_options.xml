@@ -2,5 +2,7 @@
 	<item android:id="@+id/menu_send_file" android:title="@string/Menu_sendFile"
 		android:alphabeticShortcut="f"
 		android:icon="@android:drawable/ic_menu_share" />
-	<item android:id="@+id/menu_groupchat" android:title="@string/Menu_task" android:visible="true" />
+	<item android:id="@+id/menu_task" android:title="@string/Menu_task" android:visible="true" />
+	<item android:id="@+id/menu_invite" android:title="@string/Menu_invite" android:visible="true" />
+	<item android:id="@+id/menu_kick" android:title="@string/Menu_kick" android:visible="true" />
 </menu>

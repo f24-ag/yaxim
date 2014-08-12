@@ -39,10 +39,12 @@ import android.preference.PreferenceManager;
 import android.provider.ContactsContract;
 import android.util.Log;
 import de.f24.rooms.crypto.EncryptionException;
+import de.f24.rooms.messages.AddParticipantRequest;
 import de.f24.rooms.messages.CompanyAffiliationResponse;
 import de.f24.rooms.messages.ContactSearch;
 import de.f24.rooms.messages.ContactSync;
 import de.f24.rooms.messages.FileMessage;
+import de.f24.rooms.messages.KickParticipantRequest;
 import de.f24.rooms.messages.OpenRoomRequest;
 import de.f24.rooms.messages.Registration;
 import de.f24.rooms.messages.RegistrationRequest;
@@ -307,6 +309,32 @@ public class XMPPService extends GenericService {
 				}
 				return null;
 			}
+
+            @Override
+            public void inviteParticipant( final String roomID, final String jid ) throws RemoteException {
+
+                if ( mSmackable != null ) {
+                    final AddParticipantRequest message =
+                            (AddParticipantRequest) RoomsMessageFactory
+                                    .getRoomsMessage( RoomsMessageType.AddParticipantRequest );
+                    message.setRoomID( roomID );
+                    message.setParticipants( Arrays.asList( jid ) );
+                    mSmackable.sendControlMessage( message );
+                }
+            }
+
+            @Override
+            public void kickParticipant( final String roomID, final String jid ) throws RemoteException {
+
+                if ( mSmackable != null ) {
+                    final KickParticipantRequest message =
+                            (KickParticipantRequest) RoomsMessageFactory
+                                    .getRoomsMessage( RoomsMessageType.KickParticipantRequest );
+                    message.setRoomID( roomID );
+                    message.setParticipants( Arrays.asList( jid ) );
+                    mSmackable.sendControlMessage( message );
+                }
+            }
 		};
 	}
 	

@@ -19,6 +19,7 @@ import org.yaxim.androidclient.data.ChatProvider.ChatConstants;
 import org.yaxim.androidclient.data.RosterProvider;
 import org.yaxim.androidclient.data.RosterProvider.ParticipantConstants;
 import org.yaxim.androidclient.data.RosterProvider.RoomsConstants;
+import org.yaxim.androidclient.data.RosterProvider.RosterConstants;
 import org.yaxim.androidclient.data.YaximConfiguration;
 import org.yaxim.androidclient.service.IXMPPChatService;
 import org.yaxim.androidclient.service.XMPPService;
@@ -92,7 +93,7 @@ public class ChatWindow extends SherlockListActivity implements OnKeyListener,
 	
 	private static final int DELAY_NEWMSG = 2000;
 
-	private ContentObserver mContactObserver = new ContactObserver();
+	private final ContentObserver mContactObserver = new ContactObserver();
 	private ImageView mStatusMode;
 	private TextView mTitle;
 	private TextView mSubTitle;
@@ -110,7 +111,7 @@ public class ChatWindow extends SherlockListActivity implements OnKeyListener,
 	
 
 	@Override
-	public void onCreate(Bundle savedInstanceState) {
+	public void onCreate(final Bundle savedInstanceState) {
 		mConfig = YaximApplication.getConfig(this);
 		setTheme(mConfig.getTheme());
 		super.onCreate(savedInstanceState);
@@ -123,7 +124,7 @@ public class ChatWindow extends SherlockListActivity implements OnKeyListener,
 		getContentResolver().registerContentObserver(RosterProvider.CONTENT_URI,
 				true, mContactObserver);
 
-		ActionBar actionBar = getSupportActionBar();
+		final ActionBar actionBar = getSupportActionBar();
 		actionBar.setHomeButtonEnabled(true);
 		actionBar.setDisplayHomeAsUpEnabled(true);
 
@@ -162,19 +163,19 @@ public class ChatWindow extends SherlockListActivity implements OnKeyListener,
 		setChatWindowAdapter();
 		getListView().setOnItemClickListener(new OnItemClickListener() {
 			@Override
-			public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+			public void onItemClick(final AdapterView<?> parent, final View view, final int position, final long id) {
 				if (view.getTag(R.id.TAG_CHAT_ROW_EXTRA_DATA) != null) { // Extra data in JSON format
 					try {
-						JSONObject extraData = (JSONObject)view.getTag(R.id.TAG_CHAT_ROW_EXTRA_DATA);
+						final JSONObject extraData = (JSONObject)view.getTag(R.id.TAG_CHAT_ROW_EXTRA_DATA);
 						if (extraData.has("text")) { // HACK!!!
-							int _id = (Integer)view.getTag(R.id.TAG_CHAT_ROW_ID);
+							final int _id = (Integer)view.getTag(R.id.TAG_CHAT_ROW_ID);
 							showTaskDialog(_id, extraData);
 						}
 						else {
 							new DownloadFileTask(ChatWindow.this).execute(extraData);
 						}
 					}
-					catch (Exception ex) {
+					catch (final Exception ex) {
 						Log.e(TAG, ex.getMessage());
 					}
 				}
@@ -182,9 +183,9 @@ public class ChatWindow extends SherlockListActivity implements OnKeyListener,
 		});
 	}
 
-	private void setCustomTitle(String title) {
-		LayoutInflater inflater = (LayoutInflater) getSystemService(LAYOUT_INFLATER_SERVICE);
-		View layout = inflater.inflate(R.layout.chat_action_title, null);
+	private void setCustomTitle(final String title) {
+		final LayoutInflater inflater = (LayoutInflater) getSystemService(LAYOUT_INFLATER_SERVICE);
+		final View layout = inflater.inflate(R.layout.chat_action_title, null);
 		mStatusMode = (ImageView)layout.findViewById(R.id.action_bar_status);
 		mTitle = (TextView)layout.findViewById(R.id.action_bar_title);
 		mSubTitle = (TextView)layout.findViewById(R.id.action_bar_subtitle);
@@ -196,10 +197,10 @@ public class ChatWindow extends SherlockListActivity implements OnKeyListener,
 	}
 
 	private void setChatWindowAdapter() {
-		String selection = ChatConstants.JID + "='" + mWithJabberID + "'";
-		Cursor cursor = managedQuery(ChatProvider.CONTENT_URI, PROJECTION_FROM,
+		final String selection = ChatConstants.JID + "='" + mWithJabberID + "'";
+		final Cursor cursor = managedQuery(ChatProvider.CONTENT_URI, PROJECTION_FROM,
 				selection, null, null);
-		ListAdapter adapter = new ChatWindowAdapter(cursor, PROJECTION_FROM,
+		final ListAdapter adapter = new ChatWindowAdapter(cursor, PROJECTION_FROM,
 				PROJECTION_TO, mWithJabberID, mUserScreenName);
 
 		setListAdapter(adapter);
@@ -222,23 +223,26 @@ public class ChatWindow extends SherlockListActivity implements OnKeyListener,
 	
 
 	@Override
-	public void onWindowFocusChanged(boolean hasFocus) {
+	public void onWindowFocusChanged(final boolean hasFocus) {
 		super.onWindowFocusChanged(hasFocus);
-		if (hasFocus)
-			bindXMPPService();
-		else
-			unbindXMPPService();
+		if (hasFocus) {
+            bindXMPPService();
+        } else {
+            unbindXMPPService();
+        }
 	}
 
 	@Override
 	public void onDestroy() {
 		super.onDestroy();
-		if (hasWindowFocus()) unbindXMPPService();
+		if (hasWindowFocus()) {
+            unbindXMPPService();
+        }
 		getContentResolver().unregisterContentObserver(mContactObserver);
 	}
 	
 	@Override
-	public boolean onCreateOptionsMenu(Menu menu) {
+	public boolean onCreateOptionsMenu(final Menu menu) {
 		getSupportMenuInflater().inflate(R.menu.chat_options, menu);
 		return true;
 	}
@@ -246,13 +250,14 @@ public class ChatWindow extends SherlockListActivity implements OnKeyListener,
 	private void registerXMPPService() {
 		Log.i(TAG, "called startXMPPService()");
 		mServiceIntent = new Intent(this, XMPPService.class);
-		Uri chatURI = Uri.parse(mWithJabberID);
+		final Uri chatURI = Uri.parse(mWithJabberID);
 		mServiceIntent.setData(chatURI);
 		mServiceIntent.setAction("org.yaxim.androidclient.XMPPSERVICE");
 
 		mServiceConnection = new ServiceConnection() {
 
-			public void onServiceConnected(ComponentName name, IBinder service) {
+			@Override
+            public void onServiceConnected(final ComponentName name, final IBinder service) {
 				Log.i(TAG, "called onServiceConnected()");
 				mServiceAdapter = new XMPPChatServiceAdapter(
 						IXMPPChatService.Stub.asInterface(service),
@@ -262,7 +267,8 @@ public class ChatWindow extends SherlockListActivity implements OnKeyListener,
 				updateContactStatus();
 			}
 
-			public void onServiceDisconnected(ComponentName name) {
+			@Override
+            public void onServiceDisconnected(final ComponentName name) {
 				Log.i(TAG, "called onServiceDisconnected()");
 			}
 
@@ -272,7 +278,7 @@ public class ChatWindow extends SherlockListActivity implements OnKeyListener,
 	private void unbindXMPPService() {
 		try {
 			unbindService(mServiceConnection);
-		} catch (IllegalArgumentException e) {
+		} catch (final IllegalArgumentException e) {
 			Log.e(TAG, "Service wasn't bound!");
 		}
 	}
@@ -283,13 +289,13 @@ public class ChatWindow extends SherlockListActivity implements OnKeyListener,
 
 	private void setSendButton() {
 		mSendButton = (Button) findViewById(R.id.Chat_SendButton);
-		View.OnClickListener onSend = getOnSetListener();
+		final View.OnClickListener onSend = getOnSetListener();
 		mSendButton.setOnClickListener(onSend);
 		mSendButton.setEnabled(false);
 	}
 
 	private void setUserInput() {
-		Intent i = getIntent();
+		final Intent i = getIntent();
 		mChatInput = (EditText) findViewById(R.id.Chat_UserInput);
 		mChatInput.addTextChangedListener(this);
 		if (i.hasExtra(INTENT_EXTRA_MESSAGE)) {
@@ -298,7 +304,7 @@ public class ChatWindow extends SherlockListActivity implements OnKeyListener,
 	}
 
 	private void setContactFromUri() {
-		Intent i = getIntent();
+		final Intent i = getIntent();
 		mWithJabberID = i.getDataString().toLowerCase();
 		if (i.hasExtra(INTENT_EXTRA_USERNAME)) {
 			mUserScreenName = i.getExtras().getString(INTENT_EXTRA_USERNAME);
@@ -308,28 +314,29 @@ public class ChatWindow extends SherlockListActivity implements OnKeyListener,
 	}
 
 	@Override
-	public void onCreateContextMenu(ContextMenu menu, View v,
-			ContextMenu.ContextMenuInfo menuInfo) {
+	public void onCreateContextMenu(final ContextMenu menu, final View v,
+			final ContextMenu.ContextMenuInfo menuInfo) {
 		super.onCreateContextMenu(menu, v, menuInfo);
 
-		View target = ((AdapterContextMenuInfo)menuInfo).targetView;
-		TextView from = (TextView)target.findViewById(R.id.chat_from);
+		final View target = ((AdapterContextMenuInfo)menuInfo).targetView;
+		final TextView from = (TextView)target.findViewById(R.id.chat_from);
 		getMenuInflater().inflate(R.menu.chat_contextmenu, menu);
 		if (!from.getText().equals(getString(R.string.chat_from_me))) {
 			menu.findItem(R.id.chat_contextmenu_resend).setEnabled(false);
 		}
 	}
 
-	private CharSequence getMessageFromContextMenu(MenuItem item) {
-		View target = ((AdapterContextMenuInfo)item.getMenuInfo()).targetView;
-		TextView message = (TextView)target.findViewById(R.id.chat_message);
+	private CharSequence getMessageFromContextMenu(final MenuItem item) {
+		final View target = ((AdapterContextMenuInfo)item.getMenuInfo()).targetView;
+		final TextView message = (TextView)target.findViewById(R.id.chat_message);
 		return message.getText();
 	}
 
-	public boolean onContextItemSelected(MenuItem item) {
+	@Override
+    public boolean onContextItemSelected(final MenuItem item) {
 		switch (item.getItemId()) {
 		case R.id.chat_contextmenu_copy_text:
-			ClipboardManager cm = (ClipboardManager)getSystemService(Context.CLIPBOARD_SERVICE);
+			final ClipboardManager cm = (ClipboardManager)getSystemService(Context.CLIPBOARD_SERVICE);
 			cm.setText(getMessageFromContextMenu(item));
 			return true;
 		case R.id.chat_contextmenu_resend:
@@ -337,7 +344,7 @@ public class ChatWindow extends SherlockListActivity implements OnKeyListener,
 			Log.d(TAG, "resend!");
 			return true;
 		default:
-			return super.onContextItemSelected((android.view.MenuItem) item);
+			return super.onContextItemSelected(item);
 		}
 	}
 	
@@ -345,7 +352,8 @@ public class ChatWindow extends SherlockListActivity implements OnKeyListener,
 	private View.OnClickListener getOnSetListener() {
 		return new View.OnClickListener() {
 
-			public void onClick(View v) {
+			@Override
+            public void onClick(final View v) {
 				sendMessageIfNotNull();
 			}
 		};
@@ -357,29 +365,30 @@ public class ChatWindow extends SherlockListActivity implements OnKeyListener,
 		}
 	}
 
-	private void sendMessage(String message) {
+	private void sendMessage(final String message) {
 		mChatInput.setText(null);
 		mSendButton.setEnabled(false);
 		mServiceAdapter.sendMessage(mWithJabberID, message);
-		if (!mServiceAdapter.isServiceAuthenticated())
-			showToastNotification(R.string.toast_stored_offline);
+		if (!mServiceAdapter.isServiceAuthenticated()) {
+            showToastNotification(R.string.toast_stored_offline);
+        }
 	}
 
 	private void markAsReadDelayed(final int id, final int delay) {
 		new Thread() {
 			@Override
 			public void run() {
-				try { Thread.sleep(delay); } catch (Exception e) {}
+				try { Thread.sleep(delay); } catch (final Exception e) {}
 				markAsRead(id);
 			}
 		}.start();
 	}
 	
-	private void markAsRead(int id) {
-		Uri rowuri = Uri.parse("content://" + ChatProvider.AUTHORITY
+	private void markAsRead(final int id) {
+		final Uri rowuri = Uri.parse("content://" + ChatProvider.AUTHORITY
 			+ "/" + ChatProvider.TABLE_NAME + "/" + id);
 		Log.d(TAG, "markAsRead: " + rowuri);
-		ContentValues values = new ContentValues();
+		final ContentValues values = new ContentValues();
 		values.put(ChatConstants.DELIVERY_STATUS, ChatConstants.DS_SENT_OR_READ);
 		getContentResolver().update(rowuri, values, null, null);
 	}
@@ -387,43 +396,43 @@ public class ChatWindow extends SherlockListActivity implements OnKeyListener,
 	class ChatWindowAdapter extends SimpleCursorAdapter {
 		String mScreenName, mJID;
 
-		ChatWindowAdapter(Cursor cursor, String[] from, int[] to,
-				String JID, String screenName) {
+		ChatWindowAdapter(final Cursor cursor, final String[] from, final int[] to,
+				final String JID, final String screenName) {
 			super(ChatWindow.this, android.R.layout.simple_list_item_1, cursor,
 					from, to);
 			mScreenName = screenName;
 			mJID = JID;
 		}
 		
-		public View getFileDownloadView(String from, String date, String extraData) {
-			LayoutInflater inflater = getLayoutInflater();
-			View row = inflater.inflate(R.layout.chatfilerow, null);
+		public View getFileDownloadView(final String from, final String date, final String extraData) {
+			final LayoutInflater inflater = getLayoutInflater();
+			final View row = inflater.inflate(R.layout.chatfilerow, null);
 			((TextView) row.findViewById(R.id.chat_date)).setText(date);
 			((TextView) row.findViewById(R.id.chat_from)).setText(from);
 			try {
-				JSONObject fileInfo = new JSONObject(extraData);
+				final JSONObject fileInfo = new JSONObject(extraData);
 				((TextView) row.findViewById(R.id.fileNameText)).setText(fileInfo.getString("filename"));
 				((TextView) row.findViewById(R.id.fileSizeText)).setText(fileInfo.getString("size"));
 				((TextView) row.findViewById(R.id.fileDescriptionText)).setText(fileInfo.getString("description"));
 				row.setTag(R.id.TAG_CHAT_ROW_EXTRA_DATA, fileInfo);
 			}
-			catch (Exception ex) {
+			catch (final Exception ex) {
 				Log.e(TAG, ex.getMessage());
 			}
 			return row;
 		}
 
-		public View getTaskView(RoomsMessageType type, String from, String date, String text, String extraData) {
-			LayoutInflater inflater = getLayoutInflater();
-			View row = inflater.inflate(R.layout.taskrow, null);
+		public View getTaskView(final RoomsMessageType type, final String from, final String date, final String text, final String extraData) {
+			final LayoutInflater inflater = getLayoutInflater();
+			final View row = inflater.inflate(R.layout.taskrow, null);
 			((TextView) row.findViewById(R.id.chat_date)).setText(date);
 			((TextView) row.findViewById(R.id.chat_from)).setText(from);
 			try {
-				JSONObject taskInfo = new JSONObject(extraData);
+				final JSONObject taskInfo = new JSONObject(extraData);
 				((TextView) row.findViewById(R.id.taskText)).setText(text);
 				row.setTag(R.id.TAG_CHAT_ROW_EXTRA_DATA, taskInfo);
 			}
-			catch (Exception ex) {
+			catch (final Exception ex) {
 				Log.e(TAG, ex.getMessage());
 			}
 			row.setBackgroundColor(type == RoomsMessageType.Task ? 0xffffcccc : 0xffccffcc);
@@ -431,24 +440,24 @@ public class ChatWindow extends SherlockListActivity implements OnKeyListener,
 		}
 
 		@Override
-		public View getView(int position, View convertView, ViewGroup parent) {
-			Cursor cursor = this.getCursor();
+		public View getView(final int position, final View convertView, final ViewGroup parent) {
+			final Cursor cursor = this.getCursor();
 			cursor.moveToPosition(position);
 
-			long dateMilliseconds = cursor.getLong(cursor
+			final long dateMilliseconds = cursor.getLong(cursor
 					.getColumnIndex(ChatProvider.ChatConstants.DATE));
 
-			int _id = cursor.getInt(cursor
+			final int _id = cursor.getInt(cursor
 					.getColumnIndex(ChatProvider.ChatConstants._ID));
-			String date = getDateString(dateMilliseconds);
-			String message = cursor.getString(cursor
+			final String date = getDateString(dateMilliseconds);
+			final String message = cursor.getString(cursor
 					.getColumnIndex(ChatProvider.ChatConstants.MESSAGE));
-			int intType = cursor.getInt(cursor
+			final int intType = cursor.getInt(cursor
 					.getColumnIndex(ChatProvider.ChatConstants.TYPE));
-			RoomsMessageType type = RoomsMessageType.values()[intType];
-			String sender = cursor.getString(cursor
+			final RoomsMessageType type = RoomsMessageType.values()[intType];
+			final String sender = cursor.getString(cursor
 					.getColumnIndex(ChatProvider.ChatConstants.SENDER));
-			boolean from_me = mConfig.jabberID.equalsIgnoreCase(sender);
+			final boolean from_me = mConfig.jabberID.equalsIgnoreCase(sender);
 			String from = sender;
 			if (sender.equals(mJID)){
 				from = mScreenName;
@@ -456,16 +465,16 @@ public class ChatWindow extends SherlockListActivity implements OnKeyListener,
 			if (participants != null && participants.get(from) != null) {
 				from = participants.get(from);
 			}
-			int delivery_status = cursor.getInt(cursor
+			final int delivery_status = cursor.getInt(cursor
 					.getColumnIndex(ChatProvider.ChatConstants.DELIVERY_STATUS));
 
 			if (type == RoomsMessageType.File) {
-				String extraData = cursor.getString(cursor.getColumnIndex(ChatProvider.ChatConstants.EXTRA_DATA));
+				final String extraData = cursor.getString(cursor.getColumnIndex(ChatProvider.ChatConstants.EXTRA_DATA));
 				return getFileDownloadView(from, date, extraData);
 			}
 			else if (type == RoomsMessageType.Task || type == RoomsMessageType.TaskResponse) {
-				String extraData = cursor.getString(cursor.getColumnIndex(ChatProvider.ChatConstants.EXTRA_DATA));
-				View taskView = getTaskView(type, from, date, message, extraData);
+				final String extraData = cursor.getString(cursor.getColumnIndex(ChatProvider.ChatConstants.EXTRA_DATA));
+				final View taskView = getTaskView(type, from, date, message, extraData);
 				taskView.setTag(R.id.TAG_CHAT_ROW_ID, _id);
 				return taskView;
 			}
@@ -477,7 +486,7 @@ public class ChatWindow extends SherlockListActivity implements OnKeyListener,
 			}
 
 			if (row == null) {
-				LayoutInflater inflater = getLayoutInflater();
+				final LayoutInflater inflater = getLayoutInflater();
 				row = inflater.inflate(R.layout.chatrow, null);
 				wrapper = new ChatItemWrapper(row, ChatWindow.this);
 				row.setTag(wrapper);
@@ -497,9 +506,9 @@ public class ChatWindow extends SherlockListActivity implements OnKeyListener,
 		}
 	}
 
-	private String getDateString(long milliSeconds) {
-		SimpleDateFormat dateFormater = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-		Date date = new Date(milliSeconds);
+	private String getDateString(final long milliSeconds) {
+		final SimpleDateFormat dateFormater = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+		final Date date = new Date(milliSeconds);
 		return dateFormater.format(date);
 	}
 
@@ -510,18 +519,18 @@ public class ChatWindow extends SherlockListActivity implements OnKeyListener,
 		private ImageView mIconView = null;
 
 		private final View mRowView;
-		private ChatWindow chatWindow;
+		private final ChatWindow chatWindow;
 
-		ChatItemWrapper(View row, ChatWindow chatWindow) {
+		ChatItemWrapper(final View row, final ChatWindow chatWindow) {
 			this.mRowView = row;
 			this.chatWindow = chatWindow;
 		}
 
-		void populateFrom(String date, boolean from_me, String from, String message,
-				int delivery_status) {
+		void populateFrom(final String date, final boolean from_me, final String from, final String message,
+				final int delivery_status) {
 //			Log.i(TAG, "populateFrom(" + from_me + ", " + from + ", " + message + ")");
 			getDateView().setText(date);
-			TypedValue tv = new TypedValue();
+			final TypedValue tv = new TypedValue();
 			if (from_me) {
 				getTheme().resolveAttribute(R.attr.ChatMsgHeaderMeColor, tv, true);
 				getDateView().setTextColor(tv.data);
@@ -535,7 +544,7 @@ public class ChatWindow extends SherlockListActivity implements OnKeyListener,
 			}
 			switch (delivery_status) {
 			case ChatConstants.DS_NEW:
-				ColorDrawable layers[] = new ColorDrawable[2];
+				final ColorDrawable layers[] = new ColorDrawable[2];
 				getTheme().resolveAttribute(R.attr.ChatNewMessageColor, tv, true);
 				layers[0] = new ColorDrawable(tv.data);
 				if (from_me) {
@@ -545,12 +554,12 @@ public class ChatWindow extends SherlockListActivity implements OnKeyListener,
 				} else {
 					layers[1] = new ColorDrawable(0x00000000);
 				}
-				TransitionDrawable backgroundColorAnimation = new
+				final TransitionDrawable backgroundColorAnimation = new
 					TransitionDrawable(layers);
-				int l = mRowView.getPaddingLeft();
-				int t = mRowView.getPaddingTop();
-				int r = mRowView.getPaddingRight();
-				int b = mRowView.getPaddingBottom();
+				final int l = mRowView.getPaddingLeft();
+				final int t = mRowView.getPaddingTop();
+				final int r = mRowView.getPaddingRight();
+				final int b = mRowView.getPaddingBottom();
 				mRowView.setBackgroundDrawable(backgroundColorAnimation);
 				mRowView.setPadding(l, t, r, b);
 				backgroundColorAnimation.setCrossFadeEnabled(true);
@@ -611,7 +620,8 @@ public class ChatWindow extends SherlockListActivity implements OnKeyListener,
 
 	}
 
-	public boolean onKey(View v, int keyCode, KeyEvent event) {
+	@Override
+    public boolean onKey(final View v, final int keyCode, final KeyEvent event) {
 		if (event.getAction() == KeyEvent.ACTION_DOWN
 				&& keyCode == KeyEvent.KEYCODE_ENTER) {
 			sendMessageIfNotNull();
@@ -621,57 +631,66 @@ public class ChatWindow extends SherlockListActivity implements OnKeyListener,
 
 	}
 
-	public void afterTextChanged(Editable s) {
+	@Override
+    public void afterTextChanged(final Editable s) {
 		if (mChatInput.getText().length() >= 1) {
 			mChatInput.setOnKeyListener(this);
 			mSendButton.setEnabled(true);
 		}
 	}
 
-	public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+	@Override
+    public void beforeTextChanged(final CharSequence s, final int start, final int count, final int after) {
 		// TODO Auto-generated method stub
 	}
 
-	public void onTextChanged(CharSequence s, int start, int before, int count) {
+	@Override
+    public void onTextChanged(final CharSequence s, final int start, final int before, final int count) {
 
 	}
 
-	private void showToastNotification(int message) {
-		Toast toastNotification = Toast.makeText(this, message,
+	private void showToastNotification(final int message) {
+		final Toast toastNotification = Toast.makeText(this, message,
 				Toast.LENGTH_SHORT);
 		toastNotification.show();
 	}
 
 	@Override
-	public boolean onOptionsItemSelected(com.actionbarsherlock.view.MenuItem item) {
-		File file = new File(Environment.getExternalStorageDirectory().getPath());
+	public boolean onOptionsItemSelected(final com.actionbarsherlock.view.MenuItem item) {
+		final File file = new File(Environment.getExternalStorageDirectory().getPath());
 		switch (item.getItemId()) {
 		case android.R.id.home:
-			Intent intent = new Intent(this, MainWindow.class);
+			final Intent intent = new Intent(this, MainWindow.class);
 			intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
 			startActivity(intent);
 			return true;
 		case R.id.menu_send_file:
-			Intent fileIntent = new Intent(getApplicationContext(), FileExplore.class);
+			final Intent fileIntent = new Intent(getApplicationContext(), FileExplore.class);
 			fileIntent.setAction(android.content.Intent.ACTION_VIEW);
 			fileIntent.setDataAndType(Uri.fromFile(file), "*/*");
 			startActivityForResult(fileIntent, R.id.menu_send_file);
 			return true;
-		case R.id.menu_groupchat:
-			startGroupChatStep1();
+        case R.id.menu_task:
+            startTaskStep1();
 			return true;
+        case R.id.menu_invite:
+            inviteParticipant();
+            return true;
+        case R.id.menu_kick:
+            kickParticipant();
+            return true;
 		default:
 			return super.onOptionsItemSelected(item);
 		}
 	}
 	
 	@Override
-	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+	protected void onActivityResult(final int requestCode, final int resultCode, final Intent data) {
 		if (data == null || requestCode != R.id.menu_send_file) {
 			return;
 		}
-		String selectedFile = data.getStringExtra("selectedFile");
-		long ms = new Date().getTime();
+		final String selectedFile = data.getStringExtra("selectedFile");
+		final long ms = new Date().getTime();
 		if (selectedFile != null) {
 			switch (requestCode) {
 			case R.id.menu_send_file:
@@ -682,10 +701,10 @@ public class ChatWindow extends SherlockListActivity implements OnKeyListener,
 		Log.i(TAG, "Es hat " + (new Date().getTime() - ms) + " ms gedauert");
 	}
 	
-	private void startGroupChatStep1() {
+    private void startTaskStep1() {
 		final List<String> jids = new ArrayList<String>();
 		final List<String> names = new ArrayList<String>();
-		Cursor c = getContentResolver().query(RosterProvider.PARTICIPANTS_URI, new String[] {  ParticipantConstants._ID, ParticipantConstants.JID, ParticipantConstants.NAME }, 
+		final Cursor c = getContentResolver().query(RosterProvider.PARTICIPANTS_URI, new String[] {  ParticipantConstants._ID, ParticipantConstants.JID, ParticipantConstants.NAME }, 
 				ParticipantConstants.ROOM + " = ? and " + ParticipantConstants.JID + " != ?", 
 				new String[] { mWithJabberID, mConfig.jabberID }, ParticipantConstants.NAME);
 		while (c.moveToNext()) {
@@ -697,9 +716,10 @@ public class ChatWindow extends SherlockListActivity implements OnKeyListener,
 			.setSingleChoiceItems(names.toArray(new String[]{}), -1, null)
 			.setPositiveButton(android.R.string.ok,
 				new DialogInterface.OnClickListener() {
-					public void onClick(DialogInterface dialog, int which) {
-						int selectedPosition = ((AlertDialog)dialog).getListView().getCheckedItemPosition();
-						String selectedParticipant = jids.get(selectedPosition);
+					@Override
+                    public void onClick(final DialogInterface dialog, final int which) {
+						final int selectedPosition = ((AlertDialog)dialog).getListView().getCheckedItemPosition();
+						final String selectedParticipant = jids.get(selectedPosition);
 						startTaskStep2(selectedParticipant);
 					}
 				})
@@ -714,7 +734,8 @@ public class ChatWindow extends SherlockListActivity implements OnKeyListener,
 		.setView(input)
 		.setPositiveButton(android.R.string.ok,
 				new DialogInterface.OnClickListener() {
-					public void onClick(DialogInterface dialog, int which) {
+					@Override
+                    public void onClick(final DialogInterface dialog, final int which) {
 						mServiceAdapter.sendTask(mWithJabberID, input.getText().toString(), participant);
 					}
 				})
@@ -728,21 +749,23 @@ public class ChatWindow extends SherlockListActivity implements OnKeyListener,
 	};
 	
 	private void updateContactStatus() {
-		Cursor cursor = getContentResolver().query(RosterProvider.CONTENT_URI, STATUS_QUERY,
+		final Cursor cursor = getContentResolver().query(RosterProvider.CONTENT_URI, STATUS_QUERY,
 					RosterProvider.RosterConstants.JID + " = ?", new String[] { mWithJabberID }, null);
-		int MODE_IDX = cursor.getColumnIndex(RosterProvider.RosterConstants.STATUS_MODE);
-		int MSG_IDX = cursor.getColumnIndex(RosterProvider.RosterConstants.STATUS_MESSAGE);
+		final int MODE_IDX = cursor.getColumnIndex(RosterProvider.RosterConstants.STATUS_MODE);
+		final int MSG_IDX = cursor.getColumnIndex(RosterProvider.RosterConstants.STATUS_MESSAGE);
 
 		if (cursor.getCount() == 1) {
 			cursor.moveToFirst();
 			int status_mode = cursor.getInt(MODE_IDX);
-			String status_message = cursor.getString(MSG_IDX);
+			final String status_message = cursor.getString(MSG_IDX);
 			Log.d(TAG, "contact status changed: " + status_mode + " " + status_message);
 			mSubTitle.setVisibility((status_message != null && status_message.length() != 0)?
 					View.VISIBLE : View.GONE);
 			mSubTitle.setText(status_message);
 			if (mServiceAdapter == null || !mServiceAdapter.isServiceAuthenticated())
-				status_mode = 0; // override icon if we are offline
+             {
+                status_mode = 0; // override icon if we are offline
+            }
 			mStatusMode.setImageResource(StatusMode.values()[status_mode].getDrawableId());
 		}
 		cursor.close();
@@ -753,17 +776,18 @@ public class ChatWindow extends SherlockListActivity implements OnKeyListener,
 			super(new Handler());
 		}
 
-		public void onChange(boolean selfChange) {
+		@Override
+        public void onChange(final boolean selfChange) {
 			Log.d(TAG, "ContactObserver.onChange: " + selfChange);
 			updateContactStatus();
 		}
 	}
 	
 	class UploadFileTask extends AsyncTask<String, Void, String> {
-		private ProgressDialog spinner;
+		private final ProgressDialog spinner;
 		private Exception ex;
 		
-		public UploadFileTask(Context ctx) {
+		public UploadFileTask(final Context ctx) {
 			super();
 			spinner = new ProgressDialog(ctx);			
 		    spinner.setMessage(ctx.getString(R.string.rooms_uploading));
@@ -775,18 +799,19 @@ public class ChatWindow extends SherlockListActivity implements OnKeyListener,
 		}
 
 		@Override
-	    protected String doInBackground(String... selectedFiles) {
+	    protected String doInBackground(final String... selectedFiles) {
 			try {
 				return mServiceAdapter.uploadFile(ChatWindow.this, mWithJabberID, selectedFiles[0]);
 			}
-			catch (Exception ex) {
+			catch (final Exception ex) {
 				this.ex = ex;
 				Log.w(TAG, ex.getMessage(), ex);
 				return null;
 			}
 	    }
 
-	    protected void onPostExecute(String url) {
+	    @Override
+        protected void onPostExecute(final String url) {
 	    	spinner.dismiss();
 	    	if (url == null) {
 	    		Toast.makeText(getBaseContext(), ex != null ? ex.getMessage() : "Error", Toast.LENGTH_LONG).show();
@@ -798,11 +823,11 @@ public class ChatWindow extends SherlockListActivity implements OnKeyListener,
 	}
 
 	class DownloadFileTask extends AsyncTask<JSONObject, Void, String> {
-		private ProgressDialog spinner;
+		private final ProgressDialog spinner;
 		private Exception ex;
 		private String mimeType;
 		
-		public DownloadFileTask(Context ctx) {
+		public DownloadFileTask(final Context ctx) {
 			super();
 			spinner = new ProgressDialog(ctx);			
 		    spinner.setMessage(ctx.getString(R.string.rooms_downloading));
@@ -814,26 +839,27 @@ public class ChatWindow extends SherlockListActivity implements OnKeyListener,
 		}
 
 		@Override
-	    protected String doInBackground(JSONObject... fileInfo) {
+	    protected String doInBackground(final JSONObject... fileInfo) {
 			try {
 				mimeType = fileInfo[0].getString("mime-type");
 				return mServiceAdapter.downloadFile(fileInfo[0], ChatWindow.this);
 			}
-			catch (Exception ex) {
+			catch (final Exception ex) {
 				this.ex = ex;
 				return null;
 			}
 		}
 
-	    protected void onPostExecute(String uri) {
+	    @Override
+        protected void onPostExecute(final String uri) {
 	    	spinner.dismiss();
 	    	if (uri == null) {
 	    		Toast.makeText(getBaseContext(), ex != null ? ex.getMessage() : "Error", Toast.LENGTH_LONG).show();
 	    	}
 	    	else {
 	    		Log.i(TAG, uri);
-	    		Intent intent = new Intent();
-	    		File file = new File(uri);
+	    		final Intent intent = new Intent();
+	    		final File file = new File(uri);
 	            intent.setAction(android.content.Intent.ACTION_VIEW);
 	            intent.setDataAndType(Uri.fromFile(file), mimeType);
 	            startActivity(intent); 
@@ -841,7 +867,7 @@ public class ChatWindow extends SherlockListActivity implements OnKeyListener,
 	    }
 	}
 	
-	private void showTaskDialog(final int id, JSONObject taskData) throws Exception {
+	private void showTaskDialog(final int id, final JSONObject taskData) throws Exception {
 		
 		final List<String> options = new ArrayList<String>();
 		final String text = taskData.getString("text"); 
@@ -852,15 +878,16 @@ public class ChatWindow extends SherlockListActivity implements OnKeyListener,
 			.setTitle(text)
 			.setSingleChoiceItems(options.toArray(new String[]{}), 0, new DialogInterface.OnClickListener() {
            @Override
-           public void onClick(DialogInterface dialog, int which) {
+           public void onClick(final DialogInterface dialog, final int which) {
            }
        })
        .setPositiveButton(android.R.string.ok,
 			new DialogInterface.OnClickListener() {
-				public void onClick(DialogInterface dialog, int which) {
-					int selectedPosition = ((AlertDialog)dialog).getListView().getCheckedItemPosition();
-					String selectedOption = options.get(selectedPosition);
-					ContentValues values = new ContentValues();
+				@Override
+                public void onClick(final DialogInterface dialog, final int which) {
+					final int selectedPosition = ((AlertDialog)dialog).getListView().getCheckedItemPosition();
+					final String selectedOption = options.get(selectedPosition);
+					final ContentValues values = new ContentValues();
 					values.put(ChatConstants.TYPE, RoomsMessageType.TaskResponse.ordinal());
 					values.put(ChatConstants.MESSAGE, text + " [" + selectedOption + "]");
 					getContentResolver().update(ChatProvider.CONTENT_URI, values,
@@ -871,4 +898,65 @@ public class ChatWindow extends SherlockListActivity implements OnKeyListener,
 		.setNegativeButton(android.R.string.cancel, null)
 		.create().show();
 	}
+
+    private void inviteParticipant() {
+
+        final List< String > jids = new ArrayList< String >();
+        final List< String > names = new ArrayList< String >();
+        final Cursor c =
+                getContentResolver().query( RosterProvider.CONTENT_URI,
+                        new String[] { RosterConstants.JID, RosterConstants.ALIAS },
+                        null, null, RosterConstants.ALIAS );
+        while ( c.moveToNext() ) {
+            jids.add( c.getString( 0 ) );
+            names.add( c.getString( 1 ) );
+        }
+        new AlertDialog.Builder( this )
+                .setTitle( R.string.rooms_inviteParticipant )
+                .setSingleChoiceItems( names.toArray( new String[] {} ), -1, null )
+                .setPositiveButton( android.R.string.ok,
+                        new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick( final DialogInterface dialog, final int which ) {
+
+                                final int selectedPosition =
+                                        ( (AlertDialog) dialog ).getListView().getCheckedItemPosition();
+                                final String selectedParticipant = jids.get( selectedPosition );
+                                mServiceAdapter.inviteParticipant( mWithJabberID, selectedParticipant );
+                            }
+                        } )
+                .setNegativeButton( android.R.string.cancel, null )
+                .create().show();
+    }
+
+    private void kickParticipant() {
+
+        final List< String > jids = new ArrayList< String >();
+        final List< String > names = new ArrayList< String >();
+        final Cursor c =
+                getContentResolver().query( RosterProvider.PARTICIPANTS_URI,
+                        new String[] { ParticipantConstants._ID, ParticipantConstants.JID, ParticipantConstants.NAME },
+                        ParticipantConstants.ROOM + " = ? and " + ParticipantConstants.JID + " != ?",
+                        new String[] { mWithJabberID, mConfig.jabberID }, ParticipantConstants.NAME );
+        while ( c.moveToNext() ) {
+            jids.add( c.getString( 1 ) );
+            names.add( c.getString( 2 ) );
+        }
+        new AlertDialog.Builder( this )
+                .setTitle( R.string.rooms_kickParticipant )
+                .setSingleChoiceItems( names.toArray( new String[] {} ), -1, null )
+                .setPositiveButton( android.R.string.ok,
+                        new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick( final DialogInterface dialog, final int which ) {
+
+                                final int selectedPosition =
+                                        ( (AlertDialog) dialog ).getListView().getCheckedItemPosition();
+                                final String selectedParticipant = jids.get( selectedPosition );
+                                mServiceAdapter.kickParticipant( mWithJabberID, selectedParticipant );
+                            }
+                        } )
+                .setNegativeButton( android.R.string.cancel, null )
+                .create().show();
+    }
 }

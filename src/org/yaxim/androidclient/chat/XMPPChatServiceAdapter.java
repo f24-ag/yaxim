@@ -37,21 +37,21 @@ public class XMPPChatServiceAdapter {
 	private static final String TAG = "yaxim.XMPPCSAdapter";
 	private static final String AWS_KEY1 = "c879011b7c5df02fa694657dafa1b3ca7f70202b5304a45299ca3f183ec4149012409fed5f3a378a95653a72cac44e86eec9ed61381c4f09e7336f67";
 	private static final String AWS_KEY2 = "d076901f824ecf6f0351868eca56594d6f6e0c6089af5fadbe48ac95340561b1b60385cdb890af644946ecc3a5a7d289c7830af030cac4cb41c0f24badf3ea4ef5d7b627602fb0b239bd7e221791affa";
-	private IXMPPChatService xmppServiceStub;
-	private String jabberID;
+	private final IXMPPChatService xmppServiceStub;
+	private final String jabberID;
 
-	public XMPPChatServiceAdapter(IXMPPChatService xmppServiceStub,
-			String jabberID) {
+	public XMPPChatServiceAdapter(final IXMPPChatService xmppServiceStub,
+			final String jabberID) {
 		Log.i(TAG, "New XMPPChatServiceAdapter construced");
 		this.xmppServiceStub = xmppServiceStub;
 		this.jabberID = jabberID;
 	}
 
-	public void sendMessage(String user, String message) {
+	public void sendMessage(final String user, final String message) {
 		try {
 			Log.i(TAG, "Called sendMessage(): " + jabberID + ": " + message);
 			xmppServiceStub.sendMessage(user, message);
-		} catch (RemoteException e) {
+		} catch (final RemoteException e) {
 			Log.e(TAG, "caught RemoteException: " + e.getMessage());
 		}
 	}
@@ -59,63 +59,63 @@ public class XMPPChatServiceAdapter {
 	public boolean isServiceAuthenticated() {
 		try {
 			return xmppServiceStub.isAuthenticated();
-		} catch (RemoteException e) {
+		} catch (final RemoteException e) {
 			e.printStackTrace();
 		}
 		return false;
 	}
 
-	public void clearNotifications(String Jid) {
+	public void clearNotifications(final String Jid) {
 		try {
 			xmppServiceStub.clearNotifications(Jid);
-		} catch (RemoteException e) {
+		} catch (final RemoteException e) {
 			e.printStackTrace();
 		}
 	}
 
-	public void sendFile(String jabberID, String fileName, long size, String key, String url, String mimeType) {
+	public void sendFile(final String jabberID, final String fileName, final long size, final String key, final String url, final String mimeType) {
 		try {
 			xmppServiceStub.sendFile(jabberID, fileName, size, key, url, mimeType);
-		} catch (RemoteException e) {
+		} catch (final RemoteException e) {
 			e.printStackTrace();
 		}
 	}
 
-	public void openRoom(String parentRoomID, String topic, Collection<String> participantJids) {
+	public void openRoom(final String parentRoomID, final String topic, final Collection<String> participantJids) {
 		try {
 			xmppServiceStub.openRoom(parentRoomID, topic, participantJids.toArray(new String[] {}));
-		} catch (RemoteException e) {
+		} catch (final RemoteException e) {
 			e.printStackTrace();
 		}
 	}
 
-	public void sendTaskResponse(String selectedOption) {
+	public void sendTaskResponse(final String selectedOption) {
 		try {
 			xmppServiceStub.sendTaskResponse(selectedOption);
-		} catch (RemoteException e) {
+		} catch (final RemoteException e) {
 			e.printStackTrace();
 		}
 	}
 
-	public void sendTask(String roomID, String text, String recipient) {
+	public void sendTask(final String roomID, final String text, final String recipient) {
 		try {
 			xmppServiceStub.sendTask(roomID, text, recipient);
-		} catch (RemoteException e) {
+		} catch (final RemoteException e) {
 			e.printStackTrace();
 		}
 	}
 	
-	public String downloadFile(JSONObject fileInfo, Context context) throws Exception {
+	public String downloadFile(final JSONObject fileInfo, final Context context) throws Exception {
 		InputStream input = null;
         ByteArrayOutputStream output = null;
         HttpURLConnection connection = null;
-        Crypto crypto = YaximApplication.getApp(context).mCrypto;
+        final Crypto crypto = YaximApplication.getApp(context).mCrypto;
         try {
-            String downloadLink = fileInfo.getString("download-link");
-            String filename = fileInfo.getString("filename");
-            String encryptionKey = fileInfo.getString("key");
-            String mimeType = fileInfo.getString("mime-type");
-            URL url = new URL(downloadLink);
+            final String downloadLink = fileInfo.getString("download-link");
+            final String filename = fileInfo.getString("filename");
+            final String encryptionKey = fileInfo.getString("key");
+            final String mimeType = fileInfo.getString("mime-type");
+            final URL url = new URL(downloadLink);
             connection = (HttpURLConnection) url.openConnection();
             connection.connect();
 
@@ -126,72 +126,75 @@ public class XMPPChatServiceAdapter {
 
             input = connection.getInputStream();
             output = new ByteArrayOutputStream();
-            byte data[] = new byte[4096];
+            final byte data[] = new byte[4096];
             int count;
             while ((count = input.read(data)) != -1) {
                 output.write(data, 0, count);
             }
-            File dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
-            String fullName = dir.getAbsolutePath() + File.separator + filename;
-            FileOutputStream decryptedFile = new FileOutputStream(fullName);
+            final File dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+            final String fullName = dir.getAbsolutePath() + File.separator + filename;
+            final FileOutputStream decryptedFile = new FileOutputStream(fullName);
             crypto.decryptStream(new ByteArrayInputStream(output.toByteArray()), decryptedFile, encryptionKey);
             return fullName;
         } 
-        catch (Exception e) {
+        catch (final Exception e) {
             throw e;
         } 
         finally {
             try {
-                if (output != null)
+                if (output != null) {
                     output.close();
-                if (input != null)
+                }
+                if (input != null) {
                     input.close();
+                }
             } 
-            catch (IOException ignored) {
+            catch (final IOException ignored) {
             }
-            if (connection != null)
+            if (connection != null) {
                 connection.disconnect();
+            }
         }
 	}
 	
-	public String uploadFile(Context context, String to, String selectedFile) throws Exception {
-        Crypto crypto = YaximApplication.getApp(context).mCrypto;
-        String key1 = crypto.decryptSymmetrically(AWS_KEY1, TAG);
-        String key2 = crypto.decryptSymmetrically(AWS_KEY2, TAG);
-		File file = new File(selectedFile);
+	public String uploadFile(final Context context, final String to, final String selectedFile) throws Exception {
+        final Crypto crypto = YaximApplication.getApp(context).mCrypto;
+        final String key1 = crypto.decryptSymmetrically(AWS_KEY1, TAG);
+        final String key2 = crypto.decryptSymmetrically(AWS_KEY2, TAG);
+		final File file = new File(selectedFile);
 		
-		FileInputStream in = new FileInputStream(selectedFile);
-		ByteArrayOutputStream out = new ByteArrayOutputStream();
-		String key = crypto.generateSymmetricKey();
-		String fileID = UUID.randomUUID().toString();
+		final FileInputStream in = new FileInputStream(selectedFile);
+		final ByteArrayOutputStream out = new ByteArrayOutputStream();
+		final String key = crypto.generateSymmetricKey();
+		final String fileID = UUID.randomUUID().toString();
 
 		crypto.encryptStream(in, out, key);
 		
-		AmazonS3Client s3Client = new AmazonS3Client(new BasicAWSCredentials(key1, key2));
-		ObjectMetadata metadata = new ObjectMetadata();
+		final AmazonS3Client s3Client = new AmazonS3Client(new BasicAWSCredentials(key1, key2));
+		final ObjectMetadata metadata = new ObjectMetadata();
 		metadata.setContentLength(out.size());
 
-		String mimeType = getMimeTypeFromFile(file, null);
+		final String mimeType = getMimeTypeFromFile(file, null);
 
 		metadata.setContentType(mimeType);
-		PutObjectRequest por = new PutObjectRequest("encrypted-file-storage", fileID, new ByteArrayInputStream(out.toByteArray()), metadata); 
+		final PutObjectRequest por = new PutObjectRequest("encrypted-file-storage", fileID, new ByteArrayInputStream(out.toByteArray()), metadata); 
 		s3Client.putObject(por);
 		
-		ResponseHeaderOverrides override = new ResponseHeaderOverrides();
+		final ResponseHeaderOverrides override = new ResponseHeaderOverrides();
 		override.setContentType(mimeType);
-		GeneratePresignedUrlRequest urlRequest = new GeneratePresignedUrlRequest("encrypted-file-storage", fileID);
+		final GeneratePresignedUrlRequest urlRequest = new GeneratePresignedUrlRequest("encrypted-file-storage", fileID);
 		urlRequest.setExpiration(new Date(System.currentTimeMillis() + 360000000));
 		urlRequest.setResponseHeaders(override);
-		URL url = s3Client.generatePresignedUrl(urlRequest);
+		final URL url = s3Client.generatePresignedUrl(urlRequest);
 		
 		sendFile(to, file.getName(), file.length(), key, url.toString(), mimeType);
 		return url.toString();
 	}
 	
-	private String getMimeTypeFromFile(File file, String fallback) {
-		Uri uri = Uri.fromFile(file);
-		MimeTypeMap mimeTypeMap = MimeTypeMap.getSingleton();
-		String ext = MimeTypeMap.getFileExtensionFromUrl(uri.toString());
+	private String getMimeTypeFromFile(final File file, final String fallback) {
+		final Uri uri = Uri.fromFile(file);
+		final MimeTypeMap mimeTypeMap = MimeTypeMap.getSingleton();
+		final String ext = MimeTypeMap.getFileExtensionFromUrl(uri.toString());
 		String mime = mimeTypeMap.getMimeTypeFromExtension(ext);
 		
 		if (mime == null) {
@@ -200,4 +203,22 @@ public class XMPPChatServiceAdapter {
 		
 		return mime;
 	}
+
+    public void kickParticipant( final String mWithJabberID, final String selectedParticipant ) {
+
+        try {
+            xmppServiceStub.kickParticipant( mWithJabberID, selectedParticipant );
+        } catch ( final RemoteException e ) {
+            e.printStackTrace();
+        }
+    }
+
+    public void inviteParticipant( final String mWithJabberID, final String selectedParticipant ) {
+
+        try {
+            xmppServiceStub.inviteParticipant( mWithJabberID, selectedParticipant );
+        } catch ( final RemoteException e ) {
+            e.printStackTrace();
+        }
+    }
 }

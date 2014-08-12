@@ -114,7 +114,9 @@
 	<string name="Menu_addRoom">Open new room</string>
 	<string name="Menu_sync">Sync addressbook</string>
 	<string name="Menu_webLogin">Web Login</string>
-					
+	<string name="Menu_invite">Invite participant</string>
+	<string name="Menu_kick">Kick participant</string>
+							
 	<!-- AddFriend -->
 	<string name="addFriend_Title">Add a Contact</string>
 	<string name="addFriend_Summ">Please enter the Jabber ID of your friend, the
@@ -319,4 +321,6 @@
 	<string name="rooms.taskTitle">Enter task title</string>
 	<string name="rooms.companies">Please confirm that you belong to following companies:</string>
 	<string name="rooms.sync_confirm">Synchronize your address book with Rooms?</string>
+	<string name="rooms.inviteParticipant">Invite new participant to the room</string>
+	<string name="rooms.kickParticipant">Select participant to kick out</string>
 </resources>
