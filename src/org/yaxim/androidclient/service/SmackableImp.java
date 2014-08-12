@@ -850,7 +850,7 @@ public class SmackableImp implements Smackable {
 		
 		try {
 			final boolean isRoomMessage = toJID.indexOf('@') == -1;
-			final TextMessage textMsg = new TextMessage();
+            final TextMessage textMsg = RoomsMessageFactory.getRoomsMessage( RoomsMessageType.TextMessage );
 			textMsg.setSender(mConfig.jabberID);
 			textMsg.setText(message);
 			
@@ -869,7 +869,7 @@ public class SmackableImp implements Smackable {
 						new SimplePayload(null, null, payload)));
 				
 				// Send push request
-				final PushRequest pushRequest = (PushRequest)RoomsMessageFactory.getRoomsMessage(RoomsMessageType.PushRequest);
+                final PushRequest pushRequest = RoomsMessageFactory.getRoomsMessage( RoomsMessageType.PushRequest );
 				recipients.remove(mConfig.jabberID); // Do not push to myself 
 				pushRequest.setParticipants(recipients);
 				sendControlMessage(pushRequest);
