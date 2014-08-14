@@ -922,7 +922,6 @@ public class MainWindow extends SherlockFragmentActivity {
 					@Override
                     public void onClick(final DialogInterface dialog, final int which) {
 						try {
-							YaximApplication.getApp(MainWindow.this).mCrypto.generateKeys(KeyAccessor.NEW_USER);
 							serviceAdapter.sendRegistrationMessage1(input.getText().toString());
 							new FirstStartDialog(MainWindow.this, serviceAdapter).show();
 						}

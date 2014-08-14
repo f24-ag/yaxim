@@ -1,6 +1,7 @@
 package org.yaxim.androidclient.crypto;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.abstractj.kalium.encoders.Hex;
@@ -8,11 +9,17 @@ import org.abstractj.kalium.keys.KeyPair;
 import org.yaxim.androidclient.data.RosterProvider;
 import org.yaxim.androidclient.data.RosterProvider.KeysConstants;
 import org.yaxim.androidclient.data.RosterProvider.ParticipantConstants;
+import org.yaxim.androidclient.data.RosterProvider.RoomsConstants;
 
 import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.database.Cursor;
+import android.util.Log;
 import de.f24.rooms.crypto.EncryptionKeyAccessor;
+import de.f24.rooms.messages.Identity;
+import de.f24.rooms.messages.Identity.IdentityType;
+import de.f24.rooms.messages.Participant;
+import de.f24.rooms.messages.RoomConfiguration;
 
 public class KeyAccessor implements EncryptionKeyAccessor {
 	public static final String ROOMS_SERVER = "control-client@rooms-dev-vpc.f24.com";
@@ -23,15 +30,15 @@ public class KeyAccessor implements EncryptionKeyAccessor {
 
 	public static final String NEW_USER_PASSWORD = "xmpp2";
 
-	private ContentResolver mContentResolver;
-    private Hex hex = new Hex();
+	private final ContentResolver mContentResolver;
+    private final Hex hex = new Hex();
 	
-	public KeyAccessor(ContentResolver contentResolver) {
+	public KeyAccessor(final ContentResolver contentResolver) {
 		this.mContentResolver = contentResolver;
 	}
 	
-	public void savePublicKey(String jid, String resource, String key) throws Exception {
-		ContentValues values = new ContentValues();
+	public void savePublicKey(final String jid, final String resource, final String key) throws Exception {
+		final ContentValues values = new ContentValues();
 		values.put(KeysConstants.JID, jid);
 		values.put(KeysConstants.PUBLIC_KEY, key);
 		values.put(KeysConstants.RESOURCE, resource);
@@ -42,8 +49,8 @@ public class KeyAccessor implements EncryptionKeyAccessor {
 		}
 	}
 
-	public void saveKeys(String jid, String privateKey, String publicKey) throws Exception {
-		ContentValues values = new ContentValues();
+	public void saveKeys(final String jid, final String privateKey, final String publicKey) throws Exception {
+		final ContentValues values = new ContentValues();
 		values.put(KeysConstants.JID, jid);
 		values.put(KeysConstants.PUBLIC_KEY, publicKey);
 		values.put(KeysConstants.PRIVATE_KEY, privateKey);
@@ -53,9 +60,9 @@ public class KeyAccessor implements EncryptionKeyAccessor {
 		}
 	}
 
-	public KeyPair loadKeys(String jid) throws Exception {
+	public KeyPair loadKeys(final String jid) throws Exception {
 		KeyPair kp = null;
-		Cursor c = mContentResolver.query(RosterProvider.KEYS_URI, 
+		final Cursor c = mContentResolver.query(RosterProvider.KEYS_URI, 
 				new String[] { KeysConstants.PUBLIC_KEY, KeysConstants.PRIVATE_KEY }, 
 				KeysConstants.JID + " = ?", new String[] { jid }, null);
 		if (c.moveToNext()) {
@@ -66,11 +73,11 @@ public class KeyAccessor implements EncryptionKeyAccessor {
 	}
 
 	@Override
-	public String getPublicKey(String fullJid) {
+	public String getPublicKey(final String fullJid) {
 		String pk = null;
-		String[] jidParts = fullJid.split("/");
-		String bareJid = jidParts[0];
-		String resource = jidParts.length > 1 ? jidParts[1] : null;  
+		final String[] jidParts = fullJid.split("/");
+		final String bareJid = jidParts[0];
+		final String resource = jidParts.length > 1 ? jidParts[1] : null;  
 		if (KeyAccessor.ROOMS_SERVER.equals(bareJid)) {
 			return KeyAccessor.ROOMS_PUBLIC_KEY;
 		}
@@ -81,7 +88,7 @@ public class KeyAccessor implements EncryptionKeyAccessor {
 				selection += " AND " + KeysConstants.RESOURCE + " = ?";
 				args = jidParts; 
 			}
-			Cursor c = mContentResolver.query(RosterProvider.KEYS_URI, 
+			final Cursor c = mContentResolver.query(RosterProvider.KEYS_URI, 
 					new String[] { KeysConstants.PUBLIC_KEY }, 
 					selection, args, null); 
 			if (c.moveToNext()) {
@@ -93,27 +100,56 @@ public class KeyAccessor implements EncryptionKeyAccessor {
 	}
 
 	@Override
-	public List<String> getKeysOfParticipants(String roomID) {
-		List<String> keys = new ArrayList<String>();
-		Cursor c = mContentResolver.query(RosterProvider.PARTICIPANTS_URI, 
+    public RoomConfiguration getRoomConfiguration( final String roomID ) {
+
+        if ( roomID == null ) {
+            return null;
+        }
+        final RoomConfiguration conf = new RoomConfiguration();
+        final List< Participant > participants = new ArrayList< Participant >();
+
+        final Cursor c0 = mContentResolver.query( RosterProvider.ROOMS_URI,
+                RoomsConstants.getRequiredColumns().toArray( new String[] {} ),
+                RoomsConstants.ID + " = ?", new String[] { roomID }, null );
+        if ( c0.moveToNext() ) {
+            conf.setRoomId( roomID );
+            // conf.setRoomKey( c0.getString( c0.getColumnIndex( RoomsConstants.ROOM_KEY ) ) );
+            conf.setRoomName( c0.getString( c0.getColumnIndex( RoomsConstants.NAME ) ) );
+        } else {
+            return null;
+        }
+        c0.close();
+
+        final Cursor c1 = mContentResolver.query( RosterProvider.PARTICIPANTS_URI,
 				ParticipantConstants.getRequiredColumns().toArray(new String[] {}), 
-				ParticipantConstants.ROOM + " = ?", new String[] { roomID }, null);
-		while (c.moveToNext()) {
-			String jid = c.getString(c.getColumnIndex(ParticipantConstants.JID));
-			Cursor c2 = mContentResolver.query(RosterProvider.KEYS_URI, 
-					new String[] { KeysConstants.PUBLIC_KEY }, 
-					KeysConstants.JID + " = ?", new String[] { jid }, null);
-			while (c2.moveToNext()) {
-				keys.add(c.getString(0));
+                ParticipantConstants.ROOM + " = ?", new String[] { roomID }, ParticipantConstants._ID );
+        int n = 0;
+        while ( c1.moveToNext() ) {
+            final String jid = c1.getString( c1.getColumnIndex( ParticipantConstants.JID ) );
+            final Participant p =
+                    new Participant( jid, c1.getString( c1.getColumnIndex( ParticipantConstants.NAME ) ), null );
+            participants.add( p );
+			final Cursor c2 = mContentResolver.query(RosterProvider.KEYS_URI, 
+                    new String[] { KeysConstants.RESOURCE, KeysConstants.PUBLIC_KEY },
+                            KeysConstants.JID + " = ? AND " + KeysConstants.RESOURCE + " IS NOT NULL",
+                            new String[] { jid }, KeysConstants._ID );
+            if ( c2.moveToNext() ) {
+                final Identity i = new Identity( c2.getString( 0 ), c2.getString( 1 ), IdentityType.Mobile, n++ );
+                p.setIdentities( Arrays.asList( i ) );
 			}
+            c2.close();
 		}
-		return keys;
+        c1.close();
+        conf.setParticipants( participants );
+        conf.setMaxIndex( n );
+        Log.i( "Crypto", conf.toString() );
+        return conf;
 	}
 
 	@Override
-	public String getPrivateKey(String jid) {
+	public String getPrivateKey(final String jid) {
 		String pk = null;
-		Cursor c = mContentResolver.query(RosterProvider.KEYS_URI, 
+		final Cursor c = mContentResolver.query(RosterProvider.KEYS_URI, 
 			new String[] { KeysConstants.PRIVATE_KEY }, 
 			KeysConstants.JID + " = ?", new String[] { jid }, null);
 		if (c.moveToNext()) {
@@ -121,10 +157,5 @@ public class KeyAccessor implements EncryptionKeyAccessor {
 		}
 		c.close();
 		return pk;
-	}
-
-	@Override
-	public String getRoomKey(String roomID) {
-		return null; // TODO!
 	}
 }

@@ -862,6 +862,7 @@ public class SmackableImp implements Smackable {
 					}
 				}
 				textMsg.setRecipients(recipients);
+                textMsg.setRoomId( toJID );
 				final String encryptedMsg = crypto.encryptMessage(textMsg);
 				final String payload = "<body>" + encryptedMsg + "</body>";
 				final LeafNode roomNode = pubSub.getNode(toJID);
@@ -1299,6 +1300,7 @@ public class SmackableImp implements Smackable {
 					.commit();
 				final ContentValues values = new ContentValues();
 				values.put(KeysConstants.JID, confirm.getBareJid());
+                YaximApplication.getApp( mService ).mCrypto.init( mConfig.jabberID );
 				mContentResolver.update(RosterProvider.KEYS_URI, values, KeysConstants.JID + " = ?", new String[] { KeyAccessor.NEW_USER });
 				mXMPPConnection.disconnect();
 				requestConnectionState(ConnectionState.ONLINE);
@@ -1579,7 +1581,7 @@ public class SmackableImp implements Smackable {
 		try {
 			message.setSender(mConfig.jabberID);
 			message.setRecipients(Arrays.asList(KeyAccessor.ROOMS_SERVER));
-			final String encryptedMsg = crypto.encryptMessage(message);
+            final String encryptedMsg = crypto.encryptMessage( message );
 			final Message newMessage = new Message(KeyAccessor.ROOMS_SERVER, Message.Type.chat);
 			newMessage.setBody(encryptedMsg);
 	
@@ -1615,6 +1617,7 @@ public class SmackableImp implements Smackable {
 				}
 				message.setRecipients(recipients);
 			}
+            message.setRoomId( roomID );
 			final String encryptedMsg = crypto.encryptMessage(message);
 			final String payload = "<body>" + encryptedMsg + "</body>";
 			final LeafNode roomNode = pubSub.getNode(roomID);

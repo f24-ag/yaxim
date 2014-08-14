@@ -47,41 +47,48 @@ public class YaximApplication extends Application {
 		mMTM = new MemorizingTrustManager(this);
 		mConfig = new YaximConfiguration(PreferenceManager
 				.getDefaultSharedPreferences(this));
-		//mCrypto = new Crypto(new FileKeyRetriever(this));
-		mCrypto = new Crypto(new KeyAccessor(getContentResolver()));
+        try {
+            mCrypto = new Crypto( new KeyAccessor( getContentResolver() ) );
+            if ( mConfig.jabberID.length() < 3 || mConfig.jabberID.equals( KeyAccessor.NEW_USER ) ) {
+                mCrypto.generateKeys( KeyAccessor.NEW_USER );
+            }
+            mCrypto.init( mConfig.jabberID );
+        } catch ( final Exception ex ) {
+            Log.e( "Crypto", ex.getMessage(), ex );
+        }
 	}
 	
-	public static YaximApplication getApp(Context ctx) {
+	public static YaximApplication getApp(final Context ctx) {
 		return (YaximApplication)ctx.getApplicationContext();
 	}
 
-	public static YaximConfiguration getConfig(Context ctx) {
+	public static YaximConfiguration getConfig(final Context ctx) {
 		return getApp(ctx).mConfig;
 	}
 
-	public void registerForGCM(Context ctx, String jid){
-        Registrations registrations = new Registrations();
+	public void registerForGCM(final Context ctx, final String jid){
+        final Registrations registrations = new Registrations();
         try {
-            PushConfig config = new PushConfig(new URI(UNIFIED_PUSH_URL), GCM_SENDER_ID);  // 2
+            final PushConfig config = new PushConfig(new URI(UNIFIED_PUSH_URL), GCM_SENDER_ID);  // 2
             config.setVariantID(VARIANT_ID);
             config.setSecret(SECRET);
             config.setAlias(jid);
-            PushRegistrar push = registrations.push("unifiedpush", config);  // 3
+            final PushRegistrar push = registrations.push("unifiedpush", config);  // 3
     	    push.register(ctx, new Callback<Void>() {   // 2
     	        private static final long serialVersionUID = 1L;
 
     	        @Override
-    	        public void onSuccess(Void ignore) {
+    	        public void onSuccess(final Void ignore) {
     	        	Log.i("PushApplication", "Registration Succeeded!");
     	        }
 
     	        @Override
-    	        public void onFailure(Exception exception) {
+    	        public void onFailure(final Exception exception) {
     	            Log.e("PushApplication", exception.getMessage(), exception);
     	        }
     	    });
         } 
-        catch (URISyntaxException e) {
+        catch (final URISyntaxException e) {
         	Log.e("tag", e.getMessage(), e);
         }
 	}
